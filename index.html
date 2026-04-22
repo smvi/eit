@@ -3,567 +3,826 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChesnoIT — Редактор статті</title>
+<title>ChesnoIT — Відгуки про IT компанії</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Golos+Text:wght@400;500;600&display=swap');
   :root {
-    --bg: #0a0a0a; --surface: #111; --surface2: #181818; --surface3: #1e1e1e;
-    --border: #222; --border2: #2a2a2a;
-    --accent: #e8ff47; --accent2: #ff4747; --green: #47ff8a; --orange: #ff9947; --blue: #47aaff;
-    --text: #f0f0f0; --muted: #666; --muted2: #444;
+    --bg: #0a0a0a; --surface: #111111; --surface2: #1a1a1a;
+    --border: #222222; --accent: #e8ff47; --accent2: #ff4747;
+    --text: #f0f0f0; --muted: #666666; --green: #47ff8a;
   }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--bg); color:var(--text); font-family:'Golos Text',sans-serif; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
-
-  /* TOP NAV */
-  .topbar { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--border); background:rgba(10,10,10,0.98); flex-shrink:0; z-index:10; }
-  .logo { font-family:'Unbounded',sans-serif; font-weight:900; font-size:18px; cursor:pointer; letter-spacing:-1px; }
-  .logo span { color:var(--accent); }
-  .topbar-center { display:flex; align-items:center; gap:8px; }
-  .draft-badge { background:var(--surface2); border:1px solid var(--border2); color:var(--muted); font-size:11px; padding:4px 10px; border-radius:4px; }
-  .save-status { color:var(--muted); font-size:12px; display:flex; align-items:center; gap:6px; }
-  .save-dot { width:6px; height:6px; background:var(--green); border-radius:50%; }
-  .topbar-right { display:flex; gap:10px; align-items:center; }
-  .btn-outline { background:none; border:1px solid var(--border2); color:var(--muted); padding:8px 16px; border-radius:4px; font-size:13px; cursor:pointer; transition:all 0.15s; font-family:'Golos Text',sans-serif; }
-  .btn-outline:hover { border-color:#444; color:var(--text); }
-  .btn-pub { background:var(--accent); color:#000; padding:8px 20px; border-radius:4px; font-size:13px; font-weight:700; font-family:'Unbounded',sans-serif; cursor:pointer; border:none; transition:transform 0.15s; }
-  .btn-pub:hover { transform:translateY(-1px); }
-
-  /* LAYOUT */
-  .layout { display:flex; flex:1; overflow:hidden; }
-
-  /* LEFT TOOLBAR */
-  .toolbar { width:52px; border-right:1px solid var(--border); display:flex; flex-direction:column; align-items:center; padding:16px 0; gap:4px; flex-shrink:0; background:var(--surface); }
-  .tool-btn { width:36px; height:36px; background:none; border:none; color:var(--muted); cursor:pointer; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:15px; transition:all 0.15s; position:relative; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Golos Text', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 18px 40px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,10,0.96); backdrop-filter: blur(12px); z-index: 100; }
+  /* EDITOR PAGE - full screen override */
+  #page-editor.active { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+  #page-editor.active ~ footer { display:none; }
+  .editor-layout { display:flex; flex:1; overflow:hidden; }
+  .ed-toolbar { width:52px; border-right:1px solid var(--border); display:flex; flex-direction:column; align-items:center; padding:16px 0; gap:4px; flex-shrink:0; background:var(--surface); }
+  .tool-btn { width:36px; height:36px; background:none; border:none; color:var(--muted); cursor:pointer; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; transition:all 0.15s; font-family:'Golos Text',sans-serif; font-weight:600; }
   .tool-btn:hover { background:var(--surface2); color:var(--text); }
   .tool-btn.active { background:var(--surface2); color:var(--accent); }
   .tool-sep { width:24px; height:1px; background:var(--border); margin:6px 0; }
-
-  /* EDITOR */
-  .editor-wrap { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
-  .editor-inner { max-width:720px; margin:0 auto; width:100%; padding:48px 40px 120px; }
-
-  .company-selector { display:flex; align-items:center; gap:12px; margin-bottom:32px; padding:16px 20px; background:var(--surface); border:1px solid var(--border); border-radius:10px; cursor:pointer; transition:border-color 0.2s; }
-  .company-selector:hover { border-color:var(--border2); }
-  .cs-logo { width:40px; height:40px; background:#1a2a1a; border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'Unbounded',sans-serif; font-weight:900; font-size:13px; color:var(--green); flex-shrink:0; }
-  .cs-info { flex:1; }
-  .cs-name { font-weight:600; font-size:14px; }
-  .cs-meta { color:var(--muted); font-size:12px; margin-top:2px; }
-  .cs-arrow { color:var(--muted); font-size:12px; }
-
-  .title-input { font-family:'Unbounded',sans-serif; font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1.15; width:100%; background:none; border:none; outline:none; color:var(--text); resize:none; margin-bottom:24px; }
-  .title-input::placeholder { color:var(--muted2); }
-
-  .subtitle-input { font-size:17px; width:100%; background:none; border:none; outline:none; color:var(--muted); resize:none; margin-bottom:32px; line-height:1.6; font-family:'Golos Text',sans-serif; }
-  .subtitle-input::placeholder { color:var(--muted2); }
-
-  .editor-divider { border:none; border-top:1px solid var(--border); margin-bottom:28px; }
-
-  .body-editor { font-size:16px; line-height:1.8; width:100%; background:none; border:none; outline:none; color:#ddd; resize:none; font-family:'Golos Text',sans-serif; min-height:300px; }
-  .body-editor::placeholder { color:var(--muted2); }
-
-  /* HIGHLIGHTED text */
-  .editor-content { font-size:16px; line-height:1.9; color:#ddd; position:relative; }
-  .editor-content .risk-high { background:rgba(255,71,71,0.15); border-bottom:2px solid var(--accent2); border-radius:2px; cursor:pointer; transition:background 0.15s; }
-  .editor-content .risk-high:hover { background:rgba(255,71,71,0.25); }
-  .editor-content .risk-med { background:rgba(255,153,71,0.12); border-bottom:2px solid var(--orange); border-radius:2px; cursor:pointer; transition:background 0.15s; }
-  .editor-content .risk-med:hover { background:rgba(255,153,71,0.22); }
-  .editor-content .risk-low { background:rgba(232,255,71,0.08); border-bottom:2px solid var(--accent); border-radius:2px; cursor:pointer; }
-
-  /* RIGHT PANEL */
-  .right-panel { width:340px; border-left:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; overflow:hidden; background:var(--surface); }
-  .panel-tabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
-  .ptab { flex:1; padding:13px 0; text-align:center; font-size:13px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.15s; font-weight:500; }
+  .ed-wrap { flex:1; overflow-y:auto; }
+  .ed-inner { max-width:720px; margin:0 auto; padding:44px 40px 120px; }
+  .co-sel { display:flex; align-items:center; gap:12px; margin-bottom:28px; padding:14px 18px; background:var(--surface); border:1px solid var(--border); border-radius:10px; cursor:pointer; transition:border-color 0.2s; }
+  .co-sel:hover { border-color:var(--border2,#2a2a2a); }
+  .co-sel-logo { width:38px; height:38px; background:#1a2a1a; border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'Unbounded',sans-serif; font-weight:900; font-size:12px; color:var(--green); flex-shrink:0; }
+  .co-sel-info { flex:1; }
+  .co-sel-name { font-weight:600; font-size:14px; }
+  .co-sel-meta { color:var(--muted); font-size:12px; margin-top:1px; }
+  .ed-title { font-family:'Unbounded',sans-serif; font-size:28px; font-weight:900; letter-spacing:-1px; line-height:1.15; width:100%; background:none; border:none; outline:none; color:var(--text); resize:none; margin-bottom:20px; }
+  .ed-title::placeholder { color:#333; }
+  .ed-sub { font-size:16px; width:100%; background:none; border:none; outline:none; color:var(--muted); resize:none; margin-bottom:28px; line-height:1.6; font-family:'Golos Text',sans-serif; }
+  .ed-sub::placeholder { color:#333; }
+  .ed-body { font-size:16px; line-height:1.9; color:#ddd; position:relative; }
+  .ed-body .rh { background:rgba(255,71,71,0.13); border-bottom:2px solid var(--accent2); border-radius:2px; cursor:pointer; transition:background 0.15s; }
+  .ed-body .rh:hover { background:rgba(255,71,71,0.22); }
+  .ed-body .rm { background:rgba(255,153,71,0.1); border-bottom:2px solid #ff9947; border-radius:2px; cursor:pointer; }
+  .ed-body .rl { background:rgba(232,255,71,0.07); border-bottom:2px solid var(--accent); border-radius:2px; cursor:pointer; }
+  .ed-right { width:340px; border-left:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; overflow:hidden; background:var(--surface); }
+  .ptabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .ptab { flex:1; padding:12px 0; text-align:center; font-size:12px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.15s; font-weight:500; }
   .ptab.active { color:var(--text); border-bottom-color:var(--accent); }
-  .panel-body { flex:1; overflow-y:auto; padding:20px; }
-
-  /* ANON PANEL */
-  .anon-header { margin-bottom:20px; }
-  .anon-title { font-family:'Unbounded',sans-serif; font-size:14px; font-weight:700; margin-bottom:6px; letter-spacing:-0.3px; }
-  .anon-sub { color:var(--muted); font-size:12px; line-height:1.6; }
-
-  .risk-score { background:var(--surface2); border:1px solid var(--border2); border-radius:10px; padding:16px; margin-bottom:20px; }
-  .rs-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-  .rs-label { font-size:12px; color:var(--muted); }
-  .rs-val { font-family:'Unbounded',sans-serif; font-size:22px; font-weight:900; letter-spacing:-1px; }
-  .rs-bar { height:8px; background:var(--border); border-radius:4px; overflow:hidden; margin-bottom:8px; }
-  .rs-fill { height:100%; border-radius:4px; transition:width 0.5s ease; }
-  .rs-hint { font-size:11px; color:var(--muted); }
-
-  .issues-list { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
-  .issue-card { background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:14px; cursor:pointer; transition:all 0.2s; }
-  .issue-card:hover { border-color:#333; transform:translateX(2px); }
-  .issue-card.selected { border-color:var(--accent); background:rgba(232,255,71,0.04); }
-  .ic-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px; }
-  .ic-badge { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; padding:3px 8px; border-radius:3px; flex-shrink:0; }
-  .ic-badge.high { background:rgba(255,71,71,0.15); color:var(--accent2); }
-  .ic-badge.med { background:rgba(255,153,71,0.15); color:var(--orange); }
-  .ic-badge.low { background:rgba(232,255,71,0.1); color:var(--accent); }
-  .ic-text { font-size:12px; color:var(--muted); line-height:1.5; }
-  .ic-original { font-family:'Golos Text',sans-serif; font-size:13px; color:#ccc; margin-bottom:8px; font-style:italic; }
-  .ic-suggestion { font-size:12px; line-height:1.5; }
-  .ic-sug-label { color:var(--green); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px; }
-  .ic-sug-text { color:var(--green); font-size:13px; }
-  .ic-actions { display:flex; gap:6px; margin-top:10px; }
-  .ic-btn { padding:5px 12px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; border:none; font-family:'Golos Text',sans-serif; transition:all 0.15s; }
-  .ic-btn.apply { background:var(--green); color:#000; }
-  .ic-btn.apply:hover { transform:scale(1.02); }
-  .ic-btn.ignore { background:var(--surface3); color:var(--muted); }
-  .ic-btn.ignore:hover { color:var(--text); }
-
-  .scan-btn { width:100%; padding:12px; background:var(--accent); color:#000; border:none; border-radius:6px; font-size:13px; font-weight:700; font-family:'Unbounded',sans-serif; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px; }
-  .scan-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(232,255,71,0.2); }
-  .scan-btn.scanning { background:var(--surface2); color:var(--muted); cursor:wait; border:1px solid var(--border2); }
-
-  /* CHECKLIST PANEL */
-  .checklist { display:flex; flex-direction:column; gap:10px; }
-  .cl-section { margin-bottom:8px; }
-  .cl-section-title { font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; }
-  .cl-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; background:var(--surface2); border-radius:7px; margin-bottom:6px; cursor:pointer; transition:background 0.15s; }
-  .cl-item:hover { background:var(--surface3); }
-  .cl-check { width:18px; height:18px; border:2px solid var(--border2); border-radius:4px; flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
-  .cl-check.done { background:var(--green); border-color:var(--green); }
-  .cl-check.done::after { content:'✓'; font-size:11px; color:#000; font-weight:700; }
-  .cl-text { font-size:13px; color:var(--muted); line-height:1.5; }
-  .cl-text.done { color:#555; text-decoration:line-through; }
-
-  /* TIPS PANEL */
-  .tip-card { background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:14px; margin-bottom:10px; }
-  .tip-icon { font-size:18px; margin-bottom:8px; }
-  .tip-title { font-size:13px; font-weight:600; margin-bottom:6px; }
-  .tip-text { font-size:12px; color:var(--muted); line-height:1.6; }
-
-  /* BOTTOM FORMAT BAR */
-  .format-bar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:8px 12px; display:flex; align-items:center; gap:4px; box-shadow:0 8px 32px rgba(0,0,0,0.6); z-index:50; }
-  .fmt-btn { width:32px; height:32px; background:none; border:none; color:var(--muted); cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:14px; transition:all 0.15s; font-family:'Golos Text',sans-serif; font-weight:600; }
-  .fmt-btn:hover { background:var(--surface2); color:var(--text); }
-  .fmt-sep { width:1px; height:20px; background:var(--border); margin:0 4px; }
-
-  /* TOOLTIP */
-  .tooltip { position:absolute; background:var(--surface); border:1px solid var(--border2); border-radius:8px; padding:12px 14px; font-size:12px; width:220px; box-shadow:0 8px 24px rgba(0,0,0,0.5); z-index:200; pointer-events:none; opacity:0; transition:opacity 0.2s; }
-  .tooltip.visible { opacity:1; }
-
-  /* PROGRESS */
-  .progress-bar { height:2px; background:var(--border); flex-shrink:0; }
-  .progress-fill { height:100%; background:var(--accent); width:35%; transition:width 0.5s; }
-
-  /* ANON SCORE BADGE */
-  .anon-badge { display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--surface2); border:1px solid var(--border2); border-radius:6px; font-size:13px; }
-  .anon-badge .score { font-family:'Unbounded',sans-serif; font-weight:700; font-size:16px; }
-
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+  .pbody { flex:1; overflow-y:auto; padding:18px; }
+  .anon-score-box { background:var(--surface2); border:1px solid #2a2a2a; border-radius:10px; padding:14px; margin-bottom:18px; }
+  .asb-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .asb-label { font-size:12px; color:var(--muted); }
+  .asb-val { font-family:'Unbounded',sans-serif; font-size:20px; font-weight:900; letter-spacing:-0.5px; }
+  .asb-bar { height:7px; background:var(--border); border-radius:4px; overflow:hidden; margin-bottom:6px; }
+  .asb-fill { height:100%; border-radius:4px; transition:width 0.5s ease; }
+  .asb-hint { font-size:11px; color:var(--muted); }
+  .iss-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .iss { background:var(--surface2); border:1px solid #2a2a2a; border-radius:8px; padding:12px; cursor:pointer; transition:all 0.2s; }
+  .iss:hover { border-color:#333; transform:translateX(2px); }
+  .iss.sel { border-color:var(--accent); background:rgba(232,255,71,0.03); }
+  .iss-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:7px; }
+  .iss-badge { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; padding:2px 7px; border-radius:3px; flex-shrink:0; }
+  .iss-badge.h { background:rgba(255,71,71,0.15); color:var(--accent2); }
+  .iss-badge.m { background:rgba(255,153,71,0.15); color:#ff9947; }
+  .iss-badge.l { background:rgba(232,255,71,0.1); color:var(--accent); }
+  .iss-txt { font-size:12px; color:var(--muted); line-height:1.5; flex:1; }
+  .iss-orig { font-size:12px; color:#aaa; margin-bottom:7px; font-style:italic; }
+  .iss-sug-lbl { color:var(--green); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:3px; }
+  .iss-sug { color:var(--green); font-size:12px; }
+  .iss-acts { display:flex; gap:6px; margin-top:8px; }
+  .iss-btn { padding:4px 11px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; border:none; font-family:'Golos Text',sans-serif; transition:all 0.15s; }
+  .iss-btn.ap { background:var(--green); color:#000; }
+  .iss-btn.ig { background:#222; color:var(--muted); }
+  .iss-btn.ig:hover { color:var(--text); }
+  .scan-btn2 { width:100%; padding:11px; background:var(--accent); color:#000; border:none; border-radius:6px; font-size:12px; font-weight:700; font-family:'Unbounded',sans-serif; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.2s; }
+  .scan-btn2:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(232,255,71,0.2); }
+  .cl-item2 { display:flex; align-items:flex-start; gap:10px; padding:9px 11px; background:var(--surface2); border-radius:7px; margin-bottom:6px; cursor:pointer; transition:background 0.15s; }
+  .cl-item2:hover { background:#1e1e1e; }
+  .cl-chk { width:17px; height:17px; border:2px solid #2a2a2a; border-radius:4px; flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+  .cl-chk.done { background:var(--green); border-color:var(--green); }
+  .cl-chk.done::after { content:'✓'; font-size:10px; color:#000; font-weight:700; }
+  .cl-txt2 { font-size:12px; color:var(--muted); line-height:1.5; }
+  .cl-txt2.done { color:#444; text-decoration:line-through; }
+  .cl-sec-t { font-size:10px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; margin:14px 0 6px; }
+  .tip2 { background:var(--surface2); border:1px solid #2a2a2a; border-radius:8px; padding:13px; margin-bottom:9px; }
+  .tip2-icon { font-size:16px; margin-bottom:6px; }
+  .tip2-t { font-size:13px; font-weight:600; margin-bottom:4px; }
+  .tip2-txt { font-size:12px; color:var(--muted); line-height:1.6; }
+  .ed-topbar { display:flex; align-items:center; justify-content:space-between; padding:12px 24px; border-bottom:1px solid var(--border); background:rgba(10,10,10,0.98); flex-shrink:0; }
+  .draft-badge { background:var(--surface2); border:1px solid #2a2a2a; color:var(--muted); font-size:11px; padding:3px 9px; border-radius:4px; }
+  .anon-badge { display:flex; align-items:center; gap:7px; padding:7px 12px; background:var(--surface2); border:1px solid #2a2a2a; border-radius:6px; font-size:12px; }
+  .anon-badge .ascore { font-family:'Unbounded',sans-serif; font-weight:700; font-size:14px; }
+  .ed-prog { height:2px; background:var(--border); flex-shrink:0; }
+  .ed-prog-fill { height:100%; background:var(--accent); transition:width 0.5s; }
+  .fmt-bar { position:sticky; bottom:0; background:var(--bg); border-top:1px solid var(--border); padding:10px 40px; display:flex; align-items:center; gap:4px; }
+  .fmt-btn2 { width:30px; height:30px; background:none; border:none; color:var(--muted); cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:13px; transition:all 0.15s; font-family:'Golos Text',sans-serif; font-weight:600; }
+  .fmt-btn2:hover { background:var(--surface2); color:var(--text); }
+  .fmt-sep2 { width:1px; height:18px; background:var(--border); margin:0 3px; }
   @keyframes slideIn { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)} }
-  .issue-card { animation: slideIn 0.3s ease; }
-
-  ::-webkit-scrollbar { width:5px; }
-  ::-webkit-scrollbar-track { background:transparent; }
+  /* ARTICLES PAGE */
+  .art-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+  .art-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; cursor:pointer; transition:all 0.2s; }
+  .art-card:hover { border-color:#333; transform:translateY(-2px); }
+  .art-card-top { padding:22px 22px 16px; }
+  .art-co-row { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .art-co-logo { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-family:'Unbounded',sans-serif; font-weight:900; font-size:10px; flex-shrink:0; }
+  .art-co-name { font-size:12px; color:var(--muted); }
+  .art-title { font-family:'Unbounded',sans-serif; font-size:16px; font-weight:700; letter-spacing:-0.5px; line-height:1.3; margin-bottom:10px; }
+  .art-excerpt { color:var(--muted); font-size:13px; line-height:1.6; }
+  .art-card-bot { padding:14px 22px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .art-meta { color:var(--muted); font-size:12px; display:flex; align-items:center; gap:10px; }
+  .art-anon { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--green); font-weight:600; }
+  .art-reads { color:var(--muted); font-size:12px; }
+  .logo { font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: -1px; cursor: pointer; }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 4px; list-style: none; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; cursor: pointer; display: block; }
+  .nav-links a:hover, .nav-links a.active { color: var(--text); background: var(--surface2); }
+  .nav-cta { background: var(--accent); color: #000; padding: 10px 20px; border-radius: 4px; font-size: 13px; font-weight: 700; font-family: 'Unbounded', sans-serif; cursor: pointer; border: none; }
+  .page { display: none; animation: fadeUp 0.35s ease; }
+  .page.active { display: block; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+  .sh { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:24px; }
+  .st { font-family:'Unbounded',sans-serif; font-size:18px; font-weight:700; letter-spacing:-0.5px; }
+  .sc { color:var(--muted); font-size:13px; }
+  .tag { background:var(--surface2); border:1px solid var(--border); color:var(--muted); padding:3px 10px; border-radius:4px; font-size:11px; }
+  .bg { color:var(--green); background:rgba(71,255,138,0.08); border:1px solid rgba(71,255,138,0.2); padding:3px 10px; border-radius:4px; font-size:11px; font-weight:600; }
+  .br { color:var(--accent2); background:rgba(255,71,71,0.08); border:1px solid rgba(255,71,71,0.2); padding:3px 10px; border-radius:4px; font-size:11px; font-weight:600; }
+  .by { color:var(--accent); background:rgba(232,255,71,0.08); border:1px solid rgba(232,255,71,0.2); padding:3px 10px; border-radius:4px; font-size:11px; font-weight:600; }
+  .tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:24px; }
+  .tab { padding:12px 20px; color:var(--muted); font-size:14px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.15s; }
+  .tab.active { color:var(--text); border-bottom-color:var(--accent); font-weight:600; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .fc { background:var(--surface2); border:1px solid var(--border); color:var(--muted); padding:6px 14px; border-radius:100px; font-size:12px; cursor:pointer; transition:all 0.15s; }
+  .fc:hover,.fc.active { background:var(--accent); color:#000; border-color:var(--accent); font-weight:600; }
+  .sbar { background:var(--surface); border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; padding:0 20px; gap:12px; transition:border-color 0.2s; }
+  .sbar:focus-within { border-color:var(--accent); }
+  .sbar input { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:'Golos Text',sans-serif; font-size:15px; padding:14px 0; }
+  .sbar input::placeholder { color:var(--muted); }
+  .btn-p { background:var(--accent); color:#000; padding:12px 24px; border-radius:4px; font-size:14px; font-weight:700; font-family:'Unbounded',sans-serif; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:8px; transition:transform 0.15s,box-shadow 0.15s; }
+  .btn-p:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(232,255,71,0.2); }
+  .btn-g { background:none; border:1px solid var(--border); color:var(--muted); padding:10px 20px; border-radius:4px; font-size:13px; cursor:pointer; transition:all 0.15s; font-family:'Golos Text',sans-serif; }
+  .btn-g:hover { border-color:#444; color:var(--text); }
+  .li-btn { background:#0a66c2; color:white; padding:12px 22px; border-radius:4px; font-size:14px; font-weight:600; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:8px; font-family:'Golos Text',sans-serif; }
+  .li-btn:hover { background:#0958a8; }
+  .sel { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:9px 14px; border-radius:6px; font-size:13px; font-family:'Golos Text',sans-serif; cursor:pointer; outline:none; }
+  /* HOME */
+  .hero { padding:72px 40px 56px; max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; }
+  .htag { display:inline-flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:6px 14px; border-radius:100px; font-size:12px; color:var(--muted); margin-bottom:24px; }
+  .htag .dot { width:6px; height:6px; background:var(--green); border-radius:50%; animation:pulse 2s infinite; }
+  .hero h1 { font-family:'Unbounded',sans-serif; font-size:50px; font-weight:900; line-height:1.05; letter-spacing:-2px; margin-bottom:20px; }
+  .hero h1 .hl { color:var(--accent); }
+  .hero p { color:var(--muted); font-size:16px; line-height:1.7; margin-bottom:32px; }
+  .ha { display:flex; gap:12px; align-items:center; }
+  .bs { color:var(--muted); padding:12px 0; font-size:14px; cursor:pointer; background:none; border:none; display:flex; align-items:center; gap:6px; transition:color 0.2s; }
+  .bs:hover { color:var(--text); }
+  .hstats { display:flex; flex-direction:column; gap:14px; }
+  .sc2 { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 22px; display:flex; align-items:center; gap:16px; }
+  .si { width:42px; height:42px; background:var(--surface2); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .sn { font-family:'Unbounded',sans-serif; font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1; }
+  .sl { color:var(--muted); font-size:12px; margin-top:2px; }
+  .cgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .cc { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
+  .cc::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:transparent; transition:background 0.2s; }
+  .cc:hover { border-color:#333; transform:translateY(-2px); }
+  .cc:hover::before { background:var(--accent); }
+  .clogo { width:46px; height:46px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:900; font-family:'Unbounded',sans-serif; font-size:14px; flex-shrink:0; }
+  .ch { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; }
+  .cr { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+  .rn { font-family:'Unbounded',sans-serif; font-size:22px; font-weight:900; letter-spacing:-1px; }
+  .rn.g { color:var(--green); } .rn.o { color:var(--accent); } .rn.b { color:var(--accent2); }
+  .stars { display:flex; gap:2px; }
+  .s { font-size:10px; } .s.on { color:var(--accent); } .s.off { color:var(--border); }
+  .cn { font-family:'Unbounded',sans-serif; font-size:14px; font-weight:700; letter-spacing:-0.3px; margin-bottom:4px; }
+  .cm { color:var(--muted); font-size:12px; margin-bottom:14px; }
+  .ctags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .cf { display:flex; justify-content:space-between; align-items:center; padding-top:14px; border-top:1px solid var(--border); }
+  .rc { color:var(--muted); font-size:12px; }
+  .vrf { color:var(--green); font-size:11px; font-weight:600; }
+  /* review card */
+  .rvc { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:12px; transition:border-color 0.2s; }
+  .rvc:hover { border-color:#2a2a2a; }
+  .rvh { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+  .rvc-co { display:flex; align-items:center; gap:12px; }
+  .rvl { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; font-family:'Unbounded',sans-serif; font-size:12px; }
+  .rvcn { font-weight:600; font-size:14px; }
+  .rvr { color:var(--muted); font-size:12px; margin-top:2px; }
+  .rvrate { font-family:'Unbounded',sans-serif; font-size:20px; font-weight:900; }
+  .pc { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .pros,.cons { background:var(--surface2); border-radius:8px; padding:12px; }
+  .pl { color:var(--green); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+  .cl { color:var(--accent2); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+  .pros p,.cons p { color:var(--muted); font-size:13px; line-height:1.5; }
+  .rvf { display:flex; justify-content:space-between; align-items:center; }
+  .rvm { color:var(--muted); font-size:12px; display:flex; align-items:center; gap:8px; }
+  .lib { display:flex; align-items:center; gap:4px; color:#4a9edd; font-size:11px; font-weight:600; background:rgba(74,158,221,0.1); padding:3px 8px; border-radius:4px; }
+  .hlp { color:var(--muted); font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px; transition:color 0.2s; }
+  .hlp:hover { color:var(--accent); }
+  /* score bars */
+  .sbars { display:flex; flex-direction:column; gap:10px; margin:14px 0; }
+  .srow { display:flex; align-items:center; gap:12px; font-size:13px; color:var(--muted); }
+  .srow span:first-child { width:130px; flex-shrink:0; }
+  .bt { flex:1; height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+  .bf { height:100%; border-radius:3px; background:var(--green); }
+  .sv { width:28px; text-align:right; font-weight:600; color:var(--text); font-size:13px; }
+  /* cta */
+  .ctab { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:40px 48px; display:flex; justify-content:space-between; align-items:center; position:relative; overflow:hidden; margin-bottom:60px; }
+  .ctab::before { content:''; position:absolute; top:-50%; right:-10%; width:400px; height:400px; background:radial-gradient(circle,rgba(232,255,71,0.05) 0%,transparent 70%); pointer-events:none; }
+  .ctab h2 { font-family:'Unbounded',sans-serif; font-size:24px; font-weight:900; letter-spacing:-1px; margin-bottom:8px; }
+  .ctab p { color:var(--muted); font-size:14px; max-width:460px; line-height:1.6; }
+  .cta-r { display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
+  .an { color:var(--muted); font-size:11px; display:flex; align-items:center; gap:4px; }
+  /* page hero */
+  .ph { padding:48px 40px 36px; max-width:1200px; margin:0 auto; }
+  .ph h1 { font-family:'Unbounded',sans-serif; font-size:36px; font-weight:900; letter-spacing:-1.5px; margin-bottom:8px; }
+  .ph p { color:var(--muted); font-size:15px; }
+  /* salary */
+  .sgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:40px; }
+  .scard { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; }
+  .srole { font-family:'Unbounded',sans-serif; font-size:14px; font-weight:700; margin-bottom:4px; letter-spacing:-0.3px; }
+  .smeta { color:var(--muted); font-size:12px; margin-bottom:18px; }
+  .srange { display:flex; align-items:flex-end; gap:8px; margin-bottom:14px; }
+  .smid { font-family:'Unbounded',sans-serif; font-size:32px; font-weight:900; color:var(--accent); letter-spacing:-1px; line-height:1; }
+  .sunit { color:var(--muted); font-size:13px; margin-bottom:4px; }
+  .sminmax { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:8px; }
+  .rbar { height:6px; background:var(--surface2); border-radius:3px; position:relative; margin-bottom:16px; }
+  .rfill { position:absolute; height:100%; background:linear-gradient(90deg,var(--surface2),var(--accent)); border-radius:3px; }
+  .rdot { position:absolute; width:12px; height:12px; background:var(--accent); border-radius:50%; top:-3px; border:2px solid var(--bg); }
+  .sbd { display:flex; gap:12px; }
+  .bdi { flex:1; background:var(--surface2); border-radius:8px; padding:12px; text-align:center; }
+  .bdv { font-family:'Unbounded',sans-serif; font-size:15px; font-weight:700; margin-bottom:2px; }
+  .bdl { color:var(--muted); font-size:11px; }
+  .stbl { width:100%; border-collapse:collapse; }
+  .stbl th { text-align:left; padding:12px 16px; font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); }
+  .stbl td { padding:14px 16px; font-size:14px; border-bottom:1px solid var(--border); }
+  .stbl tr:hover td { background:var(--surface2); }
+  .stbl td:last-child { color:var(--accent); font-family:'Unbounded',sans-serif; font-weight:700; font-size:13px; }
+  .tu { color:var(--green); font-size:12px; } .td { color:var(--accent2); font-size:12px; }
+  /* jobs */
+  .jcard { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:12px; cursor:pointer; transition:all 0.2s; display:flex; gap:20px; align-items:flex-start; }
+  .jcard:hover { border-color:#333; transform:translateX(2px); }
+  .jlogo { width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:900; font-family:'Unbounded',sans-serif; font-size:14px; flex-shrink:0; }
+  .jbody { flex:1; }
+  .jtitle { font-family:'Unbounded',sans-serif; font-size:15px; font-weight:700; letter-spacing:-0.3px; margin-bottom:4px; }
+  .jco { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  .jtags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .jfooter { display:flex; gap:16px; align-items:center; }
+  .jsal { font-family:'Unbounded',sans-serif; font-size:14px; font-weight:700; color:var(--accent); }
+  .jdate { color:var(--muted); font-size:12px; }
+  .jright { display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
+  .jrate { display:flex; align-items:center; gap:6px; font-size:13px; }
+  .jrn { font-family:'Unbounded',sans-serif; font-weight:700; }
+  .japply { background:var(--accent); color:#000; padding:9px 18px; border-radius:4px; font-size:13px; font-weight:700; font-family:'Unbounded',sans-serif; cursor:pointer; border:none; white-space:nowrap; }
+  .jlayout { display:flex; gap:32px; align-items:flex-start; }
+  .jmain { flex:1; }
+  .jsidebar { width:272px; flex-shrink:0; }
+  .sbl { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+  .sblt { font-family:'Unbounded',sans-serif; font-size:13px; font-weight:700; margin-bottom:14px; }
+  .sbi { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; cursor:pointer; transition:color 0.15s; }
+  .sbi:last-child { border-bottom:none; }
+  .sbi:hover { color:var(--accent); }
+  .sbic { color:var(--muted); font-size:12px; }
+  /* company page */
+  .cphero { padding:48px 40px 0; max-width:1200px; margin:0 auto; }
+  .cphtop { display:flex; gap:28px; align-items:flex-start; margin-bottom:32px; }
+  .cplb { width:80px; height:80px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-weight:900; font-family:'Unbounded',sans-serif; font-size:26px; flex-shrink:0; }
+  .cphi { flex:1; }
+  .cphn { font-family:'Unbounded',sans-serif; font-size:32px; font-weight:900; letter-spacing:-1px; margin-bottom:6px; }
+  .cphm { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .cphtags { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .cpact { display:flex; gap:10px; }
+  .cscg { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; padding-bottom:32px; border-bottom:1px solid var(--border); }
+  .cscc { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; text-align:center; }
+  .cscn { font-family:'Unbounded',sans-serif; font-size:36px; font-weight:900; letter-spacing:-2px; line-height:1; margin-bottom:4px; }
+  .cscl { color:var(--muted); font-size:12px; }
+  .recbar { display:flex; align-items:center; gap:12px; margin-top:10px; }
+  .rbt { flex:1; height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+  .rbf { height:100%; border-radius:4px; }
+  .cptabs { display:flex; border-bottom:1px solid var(--border); max-width:1200px; margin:0 auto; padding:0 40px; }
+  .cpcont { max-width:1200px; margin:0 auto; padding:32px 40px 80px; }
+  .cplay { display:flex; gap:32px; }
+  .cpmain { flex:1; }
+  .cpsb { width:300px; flex-shrink:0; }
+  .ib { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:16px; }
+  .ibt { font-family:'Unbounded',sans-serif; font-size:13px; font-weight:700; margin-bottom:14px; letter-spacing:-0.3px; }
+  .ibr { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .ibr:last-child { border-bottom:none; }
+  .ibk { color:var(--muted); }
+  .ibv { font-weight:500; text-align:right; }
+  /* footer */
+  footer { border-top:1px solid var(--border); padding:28px 40px; display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:13px; margin-top:40px; }
+  .fl { font-family:'Unbounded',sans-serif; font-weight:900; font-size:16px; color:var(--text); cursor:pointer; }
+  .fl span { color:var(--accent); }
+  .fls { display:flex; gap:20px; }
+  .fls a { color:var(--muted); text-decoration:none; transition:color 0.2s; }
+  .fls a:hover { color:var(--text); }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
   ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 </style>
 </head>
 <body>
+<nav>
+  <div class="logo" onclick="go('home')">Chesno<span>IT</span></div>
+  <ul class="nav-links">
+    <li><a onclick="go('home')" id="n-home" class="active">Компанії</a></li>
+    <li><a onclick="go('reviews')" id="n-reviews">Відгуки</a></li>
+    <li><a onclick="go('articles')" id="n-articles">Статті</a></li>
+    <li><a onclick="go('salaries')" id="n-salaries">Зарплати</a></li>
+    <li><a onclick="go('jobs')" id="n-jobs">Вакансії</a></li>
+  </ul>
+  <button class="nav-cta" onclick="go('editor')">✍️ Написати</button>
+</nav>
 
-<div class="topbar">
-  <div class="logo">Chesno<span>IT</span></div>
-  <div class="topbar-center">
-    <span class="draft-badge">Чернетка</span>
-    <span class="save-status"><span class="save-dot"></span>Збережено</span>
-  </div>
-  <div class="topbar-right">
-    <div class="anon-badge" id="anonBadge">
-      <span>🛡️ Анонімність:</span>
-      <span class="score" id="anonScore" style="color:var(--orange)">Середня</span>
+<!-- HOME -->
+<div id="page-home" class="page active">
+  <section class="hero">
+    <div>
+      <div class="htag"><div class="dot"></div>Верифіковано через LinkedIn</div>
+      <h1>Чесні відгуки про <span class="hl">IT компанії</span> України</h1>
+      <p>Відгуки які не можна купити і не можна видалити. Тільки реальний досвід.</p>
+      <div class="ha">
+        <button class="btn-p">🔍 Знайти компанію</button>
+        <button class="bs" onclick="go('reviews')">Написати відгук →</button>
+      </div>
     </div>
-    <button class="btn-outline">Попередній перегляд</button>
-    <button class="btn-pub">Опублікувати</button>
+    <div class="hstats">
+      <div class="sc2"><div class="si">🏢</div><div><div class="sn" style="color:var(--accent)">847</div><div class="sl">IT компаній в базі</div></div></div>
+      <div class="sc2"><div class="si">💬</div><div><div class="sn" style="color:var(--green)">4,231</div><div class="sl">верифікованих відгуків</div></div></div>
+      <div class="sc2"><div class="si">🔒</div><div><div class="sn" style="color:#555;font-size:14px;padding-top:5px">0 видалено</div><div class="sl">за запитом компаній</div></div></div>
+    </div>
+  </section>
+  <div class="wrap" style="padding-bottom:48px">
+    <div class="sbar"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="Пошук компанії... (Epam, Globallogic, Ajax)"></div>
+    <div class="filters">
+      <div class="fc active">Всі</div><div class="fc">Продуктові</div><div class="fc">Аутсорс</div><div class="fc">Стартапи</div><div class="fc">Рейтинг 4+</div><div class="fc">Є вакансії</div>
+    </div>
+  </div>
+  <section class="wrap" style="padding-bottom:60px">
+    <div class="sh"><span class="st">Компанії</span><span class="sc">847 компаній · за рейтингом</span></div>
+    <div class="tabs"><div class="tab active">Топ рейтинг</div><div class="tab">Нові відгуки</div><div class="tab">Найбільші</div><div class="tab">Стартапи</div></div>
+    <div class="cgrid">
+      <div class="cc" onclick="go('company')"><div class="ch"><div class="clogo" style="background:#1a2a1a;color:var(--green)">AJ</div><div class="cr"><span class="rn g">4.7</span><div class="stars"><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span></div></div></div><div class="cn">Ajax Systems</div><div class="cm">Продуктова · Київ · 500+</div><div class="ctags"><span class="tag">Hardware</span><span class="tag">IoT</span></div><div class="cf"><span class="rc">💬 143</span><span class="vrf">✓ Верифіковано</span></div></div>
+      <div class="cc" onclick="go('company')"><div class="ch"><div class="clogo" style="background:#1a1a2a;color:#7b68ee">GL</div><div class="cr"><span class="rn o">3.8</span><div class="stars"><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s off">★</span></div></div></div><div class="cn">GlobalLogic</div><div class="cm">Аутсорс · Київ · 5000+</div><div class="ctags"><span class="tag">Java</span><span class="tag">Enterprise</span></div><div class="cf"><span class="rc">💬 389</span><span class="vrf">✓ Верифіковано</span></div></div>
+      <div class="cc" onclick="go('company')"><div class="ch"><div class="clogo" style="background:#2a1a1a;color:var(--accent2)">EP</div><div class="cr"><span class="rn o">3.5</span><div class="stars"><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s off">★</span></div></div></div><div class="cn">EPAM Systems</div><div class="cm">Аутсорс · Львів · 10000+</div><div class="ctags"><span class="tag">.NET</span><span class="tag">Python</span></div><div class="cf"><span class="rc">💬 521</span><span class="vrf">✓ Верифіковано</span></div></div>
+      <div class="cc" onclick="go('company')"><div class="ch"><div class="clogo" style="background:#1a2a2a;color:#47d4ff">SN</div><div class="cr"><span class="rn g">4.4</span><div class="stars"><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span></div></div></div><div class="cn">Senstone</div><div class="cm">Стартап · Харків · 50-100</div><div class="ctags"><span class="tag">AI/ML</span><span class="tag">Wearables</span></div><div class="cf"><span class="rc">💬 28</span><span class="vrf">✓ Верифіковано</span></div></div>
+      <div class="cc" onclick="go('company')"><div class="ch"><div class="clogo" style="background:#2a2a1a;color:var(--accent)">GF</div><div class="cr"><span class="rn b">2.1</span><div class="stars"><span class="s on">★</span><span class="s on">★</span><span class="s off">★</span><span class="s off">★</span><span class="s off">★</span></div></div></div><div class="cn">GameForge UA</div><div class="cm">Продуктова · Одеса · 100-200</div><div class="ctags"><span class="tag">Gaming</span><span class="tag">Unity</span></div><div class="cf"><span class="rc">💬 67</span><span class="vrf">✓ Верифіковано</span></div></div>
+      <div class="cc" onclick="go('company')"><div class="ch"><div class="clogo" style="background:#1a1a1a;color:#ff9947">MO</div><div class="cr"><span class="rn g">4.2</span><div class="stars"><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s on">★</span><span class="s off">★</span></div></div></div><div class="cn">Monobank Tech</div><div class="cm">Фінтех · Київ · 200-500</div><div class="ctags"><span class="tag">Fintech</span><span class="tag">Mobile</span></div><div class="cf"><span class="rc">💬 112</span><span class="vrf">✓ Верифіковано</span></div></div>
+    </div>
+  </section>
+  <div class="wrap"><div class="ctab"><div><h2>Твій досвід важливий</h2><p>Допоможи іншим прийняти правильне рішення. Анонімно, верифіковано, без цензури.</p></div><div class="cta-r"><button class="li-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Увійти через LinkedIn</button><div class="an">🔒 Email не зберігається · анонімно</div></div></div></div>
+</div>
+
+<!-- REVIEWS -->
+<div id="page-reviews" class="page">
+  <div class="ph"><h1>Відгуки</h1><p>4,231 верифікованих відгуки · квітень 2025</p></div>
+  <div class="wrap" style="padding-bottom:60px">
+    <div class="sbar" style="margin-bottom:12px"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="Пошук за компанією, посадою..."></div>
+    <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+      <select class="sel"><option>Всі компанії</option><option>Ajax Systems</option><option>GlobalLogic</option><option>EPAM</option><option>Monobank Tech</option></select>
+      <select class="sel"><option>Всі ролі</option><option>Backend Developer</option><option>Frontend Developer</option><option>Product Manager</option><option>Data Analyst</option></select>
+      <select class="sel"><option>Будь-який рейтинг</option><option>5 ★★★★★</option><option>4+ ★★★★</option><option>3 і нижче</option></select>
+      <select class="sel"><option>Всі міста</option><option>Київ</option><option>Львів</option><option>Харків</option><option>Одеса</option></select>
+    </div>
+    <div class="rvc">
+      <div class="rvh"><div class="rvc-co"><div class="rvl" style="background:#1a2a1a;color:var(--green);cursor:pointer" onclick="go('company')">AJ</div><div><div class="rvcn" style="cursor:pointer" onclick="go('company')">Ajax Systems</div><div class="rvr">Senior Backend Developer · Київ · 2 роки</div></div></div><div class="rvrate" style="color:var(--green)">4.5</div></div>
+      <div class="sbars">
+        <div class="srow"><span>Менеджмент</span><div class="bt"><div class="bf" style="width:90%"></div></div><span class="sv">4.5</span></div>
+        <div class="srow"><span>Зарплата</span><div class="bt"><div class="bf" style="width:70%;background:var(--accent)"></div></div><span class="sv">3.5</span></div>
+        <div class="srow"><span>Баланс</span><div class="bt"><div class="bf" style="width:80%"></div></div><span class="sv">4.0</span></div>
+        <div class="srow"><span>Розвиток</span><div class="bt"><div class="bf" style="width:96%"></div></div><span class="sv">4.8</span></div>
+      </div>
+      <div class="pc"><div class="pros"><div class="pl">✓ Плюси</div><p>Реальний продукт який рятує людей. Відчуття що робота має сенс. Немає мікроменеджменту, довіра до розробників.</p></div><div class="cons"><div class="cl">✗ Мінуси</div><p>Легасі код в деяких місцях. Зарплата трохи нижче ринку, але компенсується іншим.</p></div></div>
+      <div class="rvf"><div class="rvm"><span class="lib">in Верифіковано</span><span>3 дні тому</span><span class="bg">Рекомендує</span></div><div class="hlp">👍 Корисно (24)</div></div>
+    </div>
+    <div class="rvc">
+      <div class="rvh"><div class="rvc-co"><div class="rvl" style="background:#2a2a1a;color:var(--accent)">GF</div><div><div class="rvcn">GameForge UA</div><div class="rvr">Game Designer · Одеса · 8 місяців</div></div></div><div class="rvrate" style="color:var(--accent2)">1.5</div></div>
+      <div class="sbars">
+        <div class="srow"><span>Менеджмент</span><div class="bt"><div class="bf" style="width:15%;background:var(--accent2)"></div></div><span class="sv">0.8</span></div>
+        <div class="srow"><span>Зарплата</span><div class="bt"><div class="bf" style="width:40%;background:var(--accent2)"></div></div><span class="sv">2.0</span></div>
+        <div class="srow"><span>Баланс</span><div class="bt"><div class="bf" style="width:20%;background:var(--accent2)"></div></div><span class="sv">1.0</span></div>
+        <div class="srow"><span>Розвиток</span><div class="bt"><div class="bf" style="width:50%;background:var(--accent)"></div></div><span class="sv">2.5</span></div>
+      </div>
+      <div class="pc"><div class="pros"><div class="pl">✓ Плюси</div><p>Цікаві проекти, різні жанри ігор. Молодий колектив.</p></div><div class="cons"><div class="cl">✗ Мінуси</div><p>Кранч без доплат, обіцянки не виконуються. Менеджмент хаотичний. Затримки зарплати по 2-3 тижні.</p></div></div>
+      <div class="rvf"><div class="rvm"><span class="lib">in Верифіковано</span><span>1 тиждень тому</span><span class="br">Не рекомендує</span></div><div class="hlp">👍 Корисно (87)</div></div>
+    </div>
+    <div class="rvc">
+      <div class="rvh"><div class="rvc-co"><div class="rvl" style="background:#1a1a1a;color:#ff9947">MO</div><div><div class="rvcn">Monobank Tech</div><div class="rvr">Data Analyst · Київ · 1.5 роки</div></div></div><div class="rvrate" style="color:var(--accent)">3.8</div></div>
+      <div class="sbars">
+        <div class="srow"><span>Менеджмент</span><div class="bt"><div class="bf" style="width:70%;background:var(--accent)"></div></div><span class="sv">3.5</span></div>
+        <div class="srow"><span>Зарплата</span><div class="bt"><div class="bf" style="width:88%"></div></div><span class="sv">4.4</span></div>
+        <div class="srow"><span>Баланс</span><div class="bt"><div class="bf" style="width:60%;background:var(--accent)"></div></div><span class="sv">3.0</span></div>
+        <div class="srow"><span>Розвиток</span><div class="bt"><div class="bf" style="width:75%;background:var(--accent)"></div></div><span class="sv">3.8</span></div>
+      </div>
+      <div class="pc"><div class="pros"><div class="pl">✓ Плюси</div><p>Хороша зарплата вище ринку. Реальні дані, цікаві аналітичні задачі. Швидке прийняття рішень.</p></div><div class="cons"><div class="cl">✗ Мінуси</div><p>Дуже високий темп, часто на зв'язку поза робочим часом. Документація відсутня майже скрізь.</p></div></div>
+      <div class="rvf"><div class="rvm"><span class="lib">in Верифіковано</span><span>2 тижні тому</span><span class="by">Нейтрально</span></div><div class="hlp">👍 Корисно (41)</div></div>
+    </div>
+    <div class="rvc">
+      <div class="rvh"><div class="rvc-co"><div class="rvl" style="background:#1a1a2a;color:#7b68ee">GL</div><div><div class="rvcn">GlobalLogic</div><div class="rvr">Frontend Developer · Дніпро · 3 роки</div></div></div><div class="rvrate" style="color:var(--accent)">3.6</div></div>
+      <div class="pc"><div class="pros"><div class="pl">✓ Плюси</div><p>Стабільність, офіційне оформлення. English-клуб. Медстраховка від першого дня.</p></div><div class="cons"><div class="cl">✗ Мінуси</div><p>Повільно, багато процесів. Підвищення раз на рік і тільки якщо сам нагадаєш. Проекти часто нецікаві.</p></div></div>
+      <div class="rvf"><div class="rvm"><span class="lib">in Верифіковано</span><span>3 тижні тому</span><span class="by">Нейтрально</span></div><div class="hlp">👍 Корисно (33)</div></div>
+    </div>
   </div>
 </div>
 
-<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-
-<div class="layout">
-  <!-- TOOLBAR -->
-  <div class="toolbar">
-    <button class="tool-btn active" title="Текст">T</button>
-    <button class="tool-btn" title="Жирний"><b>B</b></button>
-    <button class="tool-btn" title="Курсив"><i>I</i></button>
-    <div class="tool-sep"></div>
-    <button class="tool-btn" title="Заголовок H2" style="font-size:11px;font-weight:700">H2</button>
-    <button class="tool-btn" title="Цитата">"</button>
-    <button class="tool-btn" title="Список">≡</button>
-    <div class="tool-sep"></div>
-    <button class="tool-btn" title="Фото">🖼</button>
-    <button class="tool-btn" title="Посилання">🔗</button>
-    <div class="tool-sep"></div>
-    <button class="tool-btn" title="Роздільник" style="font-size:18px">—</button>
+<!-- SALARIES -->
+<div id="page-salaries" class="page">
+  <div class="ph"><h1>Зарплати</h1><p>Реальні дані від 4,231 верифікованих співробітників · оновлено квітень 2025</p></div>
+  <div class="wrap" style="padding-bottom:60px">
+    <div style="display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap">
+      <select class="sel"><option>Всі ролі</option><option>Backend Developer</option><option>Frontend Developer</option><option>Data Analyst</option><option>Product Manager</option><option>DevOps</option></select>
+      <select class="sel"><option>Всі рівні</option><option>Junior</option><option>Middle</option><option>Senior</option><option>Lead</option></select>
+      <select class="sel"><option>Всі міста</option><option>Київ</option><option>Львів</option><option>Харків</option><option>Дніпро</option></select>
+      <select class="sel"><option>USD</option><option>UAH</option></select>
+    </div>
+    <div class="sgrid">
+      <div class="scard"><div class="srole">Backend Developer</div><div class="smeta">Middle · Київ · 312 відповідей</div><div class="srange"><div class="smid">$3,200</div><div class="sunit">/міс</div></div><div class="sminmax"><span>Мін: $1,800</span><span>Медіана</span><span>Макс: $5,500</span></div><div class="rbar"><div class="rfill" style="left:25%;width:50%"></div><div class="rdot" style="left:50%"></div></div><div class="sbd"><div class="bdi"><div class="bdv" style="color:var(--muted)">$2,100</div><div class="bdl">Junior</div></div><div class="bdi"><div class="bdv" style="color:var(--accent)">$3,200</div><div class="bdl">Middle</div></div><div class="bdi"><div class="bdv" style="color:var(--green)">$5,000</div><div class="bdl">Senior</div></div></div></div>
+      <div class="scard"><div class="srole">Frontend Developer</div><div class="smeta">Middle · Київ · 287 відповідей</div><div class="srange"><div class="smid">$2,800</div><div class="sunit">/міс</div></div><div class="sminmax"><span>Мін: $1,500</span><span>Медіана</span><span>Макс: $4,800</span></div><div class="rbar"><div class="rfill" style="left:22%;width:48%"></div><div class="rdot" style="left:48%"></div></div><div class="sbd"><div class="bdi"><div class="bdv" style="color:var(--muted)">$1,800</div><div class="bdl">Junior</div></div><div class="bdi"><div class="bdv" style="color:var(--accent)">$2,800</div><div class="bdl">Middle</div></div><div class="bdi"><div class="bdv" style="color:var(--green)">$4,500</div><div class="bdl">Senior</div></div></div></div>
+      <div class="scard"><div class="srole">Data Analyst</div><div class="smeta">Middle · Київ · 143 відповіді</div><div class="srange"><div class="smid">$2,400</div><div class="sunit">/міс</div></div><div class="sminmax"><span>Мін: $1,200</span><span>Медіана</span><span>Макс: $4,200</span></div><div class="rbar"><div class="rfill" style="left:20%;width:45%"></div><div class="rdot" style="left:45%"></div></div><div class="sbd"><div class="bdi"><div class="bdv" style="color:var(--muted)">$1,400</div><div class="bdl">Junior</div></div><div class="bdi"><div class="bdv" style="color:var(--accent)">$2,400</div><div class="bdl">Middle</div></div><div class="bdi"><div class="bdv" style="color:var(--green)">$3,800</div><div class="bdl">Senior</div></div></div></div>
+      <div class="scard"><div class="srole">Product Manager</div><div class="smeta">Middle · Київ · 98 відповідей</div><div class="srange"><div class="smid">$3,500</div><div class="sunit">/міс</div></div><div class="sminmax"><span>Мін: $2,000</span><span>Медіана</span><span>Макс: $7,000</span></div><div class="rbar"><div class="rfill" style="left:22%;width:44%"></div><div class="rdot" style="left:44%"></div></div><div class="sbd"><div class="bdi"><div class="bdv" style="color:var(--muted)">$2,200</div><div class="bdl">Junior</div></div><div class="bdi"><div class="bdv" style="color:var(--accent)">$3,500</div><div class="bdl">Middle</div></div><div class="bdi"><div class="bdv" style="color:var(--green)">$6,000</div><div class="bdl">Senior</div></div></div></div>
+    </div>
+    <div class="sh"><span class="st">Зарплати по компаніях</span><span class="sc">Backend Developer · Middle</span></div>
+    <table class="stbl">
+      <thead><tr><th>Компанія</th><th>Тип</th><th>Відповідей</th><th>Тренд</th><th>Медіана/міс</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Monobank Tech</strong></td><td><span class="tag">Фінтех</span></td><td style="color:var(--muted)">34</td><td><span class="tu">↑ +12%</span></td><td>$4,200</td></tr>
+        <tr><td><strong>Ajax Systems</strong></td><td><span class="tag">Продуктова</span></td><td style="color:var(--muted)">28</td><td><span class="tu">↑ +8%</span></td><td>$3,800</td></tr>
+        <tr><td><strong>Senstone</strong></td><td><span class="tag">Стартап</span></td><td style="color:var(--muted)">12</td><td><span class="tu">↑ +15%</span></td><td>$3,600</td></tr>
+        <tr><td><strong>GlobalLogic</strong></td><td><span class="tag">Аутсорс</span></td><td style="color:var(--muted)">87</td><td><span class="td">↓ -3%</span></td><td>$3,200</td></tr>
+        <tr><td><strong>EPAM Systems</strong></td><td><span class="tag">Аутсорс</span></td><td style="color:var(--muted)">124</td><td><span style="color:var(--muted)">→ 0%</span></td><td>$3,100</td></tr>
+        <tr><td><strong>GameForge UA</strong></td><td><span class="tag">Продуктова</span></td><td style="color:var(--muted)">18</td><td><span class="td">↓ -5%</span></td><td>$2,200</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:40px" class="ctab"><div><h2>Поділись своєю зарплатою</h2><p>Дані анонімні. Чим більше людей ділиться — тим точніша картина для всіх.</p></div><div class="cta-r"><button class="li-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Додати свою зарплату</button><div class="an">🔒 Повністю анонімно</div></div></div>
   </div>
+</div>
 
-  <!-- EDITOR -->
-  <div class="editor-wrap">
-    <div class="editor-inner">
-      <div class="company-selector">
-        <div class="cs-logo">AJ</div>
-        <div class="cs-info">
-          <div class="cs-name">Ajax Systems</div>
-          <div class="cs-meta">Продуктова · Київ · Hardware / IoT</div>
-        </div>
-        <span class="cs-arrow">Змінити ↓</span>
+<!-- JOBS -->
+<div id="page-jobs" class="page">
+  <div class="ph"><h1>Вакансії</h1><p>214 активних вакансій · тільки від компаній з верифікованими відгуками</p></div>
+  <div class="wrap" style="padding-bottom:80px">
+    <div class="sbar" style="margin-bottom:12px"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="Посада, компанія, технологія..."></div>
+    <div class="filters" style="margin-bottom:28px"><div class="fc active">Всі</div><div class="fc">Backend</div><div class="fc">Frontend</div><div class="fc">Data</div><div class="fc">DevOps</div><div class="fc">Product</div><div class="fc">Remote</div></div>
+    <div class="jlayout">
+      <div class="jmain">
+        <div class="jcard"><div class="jlogo" style="background:#1a2a1a;color:var(--green)">AJ</div><div class="jbody"><div class="jtitle">Senior Backend Engineer (Go)</div><div class="jco">Ajax Systems · Київ · Remote можливий</div><div class="jtags"><span class="tag">Go</span><span class="tag">Kafka</span><span class="tag">PostgreSQL</span><span class="tag">K8s</span></div><div class="jfooter"><span class="jsal">$4,000 – $6,000</span><span class="jdate">2 дні тому</span></div></div><div class="jright"><div class="jrate"><span class="jrn" style="color:var(--green)">4.7</span><span style="color:var(--muted);font-size:12px">★</span></div><button class="japply">Відгукнутись</button></div></div>
+        <div class="jcard"><div class="jlogo" style="background:#1a1a1a;color:#ff9947">MO</div><div class="jbody"><div class="jtitle">Data Analyst (Payments)</div><div class="jco">Monobank Tech · Київ · Офіс</div><div class="jtags"><span class="tag">SQL</span><span class="tag">Python</span><span class="tag">Tableau</span><span class="tag">ClickHouse</span></div><div class="jfooter"><span class="jsal">$3,000 – $4,500</span><span class="jdate">3 дні тому</span></div></div><div class="jright"><div class="jrate"><span class="jrn" style="color:var(--accent)">4.2</span><span style="color:var(--muted);font-size:12px">★</span></div><button class="japply">Відгукнутись</button></div></div>
+        <div class="jcard"><div class="jlogo" style="background:#1a2a2a;color:#47d4ff">SN</div><div class="jbody"><div class="jtitle">ML Engineer</div><div class="jco">Senstone · Харків / Remote</div><div class="jtags"><span class="tag">Python</span><span class="tag">PyTorch</span><span class="tag">NLP</span><span class="tag">Edge AI</span></div><div class="jfooter"><span class="jsal">$3,500 – $5,000</span><span class="jdate">5 днів тому</span></div></div><div class="jright"><div class="jrate"><span class="jrn" style="color:var(--green)">4.4</span><span style="color:var(--muted);font-size:12px">★</span></div><button class="japply">Відгукнутись</button></div></div>
+        <div class="jcard"><div class="jlogo" style="background:#1a1a2a;color:#7b68ee">GL</div><div class="jbody"><div class="jtitle">React Frontend Developer</div><div class="jco">GlobalLogic · Київ / Дніпро · Hybrid</div><div class="jtags"><span class="tag">React</span><span class="tag">TypeScript</span><span class="tag">GraphQL</span></div><div class="jfooter"><span class="jsal">$2,500 – $4,000</span><span class="jdate">1 тиждень тому</span></div></div><div class="jright"><div class="jrate"><span class="jrn" style="color:var(--accent)">3.8</span><span style="color:var(--muted);font-size:12px">★</span></div><button class="japply">Відгукнутись</button></div></div>
+        <div class="jcard"><div class="jlogo" style="background:#1a2a1a;color:var(--green)">AJ</div><div class="jbody"><div class="jtitle">Product Manager (IoT Platform)</div><div class="jco">Ajax Systems · Київ · Офіс</div><div class="jtags"><span class="tag">IoT</span><span class="tag">B2B</span><span class="tag">Agile</span></div><div class="jfooter"><span class="jsal">$4,500 – $7,000</span><span class="jdate">1 тиждень тому</span></div></div><div class="jright"><div class="jrate"><span class="jrn" style="color:var(--green)">4.7</span><span style="color:var(--muted);font-size:12px">★</span></div><button class="japply">Відгукнутись</button></div></div>
       </div>
-
-      <textarea class="title-input" rows="2" placeholder="Заголовок статті...">Два роки в Ajax: що не розкажуть на співбесіді</textarea>
-
-      <textarea class="subtitle-input" rows="2" placeholder="Короткий вступ або підзаголовок...">Чесний досвід від людини яка прийшла з великого аутсорсу і не очікувала такого.</textarea>
-
-      <hr class="editor-divider">
-
-      <div class="editor-content" id="editorContent">
-        <p>Я пропрацював у відділі backend-розробки майже два роки, з <span class="risk-high" data-issue="0">березня 2022 по лютий 2024</span>. Прийшов з GlobalLogic, де до цього провів три роки.</p>
-        <br>
-        <p>Команда на момент мого приходу була маленькою — <span class="risk-high" data-issue="1">нас було четверо бекендерів</span>, плюс двоє фронтів і один DevOps. Мій безпосередній керівник — <span class="risk-high" data-issue="2">Андрій Коваленко</span> — технічно дуже сильний, але часом складний у комунікації.</p>
-        <br>
-        <p>Перше що вразило — темп. <span class="risk-med" data-issue="3">Ми запускали новий модуль охоронної сигналізації</span>, і дедлайни були жорсткі. Без овертайму не обходилось, але принаймні їх не вимагали — просто так складались обставини.</p>
-        <br>
-        <p>Зарплата: на старті мені запропонували <span class="risk-med" data-issue="4">$3,800/міс</span>, що на той момент було трохи нижче ринку для мого рівня. Через рік підняли до <span class="risk-med" data-issue="5">$4,300</span> без особливих переговорів, просто прийшли самі. Це приємно здивувало.</p>
-        <br>
-        <p>Головний плюс — продукт має сенс. Коли ти розробляєш систему яка реально захищає людей, це відчувається інакше ніж CRM для якогось банку.</p>
-        <br>
-        <p>Мінуси: легасі в деяких модулях страшне. Документації майже нема. <span class="risk-low" data-issue="6">Онбординг зайняв у мене три місяці</span> щоб більш-менш орієнтуватись.</p>
-        <br>
-        <p>Звільнився бо знайшов можливість з релокацією. Не тому що погано — просто час рухатись далі.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT PANEL -->
-  <div class="right-panel">
-    <div class="panel-tabs">
-      <div class="ptab active" onclick="switchTab('anon', this)">🛡️ Анонімність</div>
-      <div class="ptab" onclick="switchTab('check', this)">✓ Чекліст</div>
-      <div class="ptab" onclick="switchTab('tips', this)">💡 Поради</div>
-    </div>
-
-    <!-- ANON TAB -->
-    <div class="panel-body" id="tab-anon">
-      <div class="anon-header">
-        <div class="anon-title">ШІ-аналіз анонімності</div>
-        <div class="anon-sub">Знаходимо деталі які можуть тебе деанонімізувати і пропонуємо як переформулювати.</div>
-      </div>
-
-      <div class="risk-score">
-        <div class="rs-top">
-          <span class="rs-label">Ризик деанонімізації</span>
-          <span class="rs-val" id="riskVal" style="color:var(--orange)">Середній</span>
-        </div>
-        <div class="rs-bar"><div class="rs-fill" id="riskFill" style="width:58%;background:var(--orange)"></div></div>
-        <div class="rs-hint" id="riskHint">Знайдено 7 потенційних проблем · 3 критичних</div>
-      </div>
-
-      <div class="issues-list" id="issuesList">
-        <!-- issues rendered by JS -->
-      </div>
-
-      <button class="scan-btn" id="scanBtn" onclick="rescan()">
-        <span>🔍</span> Повторний аналіз
-      </button>
-    </div>
-
-    <!-- CHECKLIST TAB -->
-    <div class="panel-body" id="tab-check" style="display:none">
-      <div class="checklist">
-        <div class="cl-section">
-          <div class="cl-section-title">Особиста інформація</div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check done"></div><div class="cl-text done">Не згадую своє ім'я або ініціали</div></div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check done"></div><div class="cl-text done">Не згадую місто проживання</div></div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check"></div><div class="cl-text">Не згадую конкретні дати роботи</div></div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check"></div><div class="cl-text">Не вказую попередні місця роботи з датами</div></div>
-        </div>
-        <div class="cl-section">
-          <div class="cl-section-title">Ідентифікація в компанії</div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check"></div><div class="cl-text">Не вказую імена колег або менеджерів</div></div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check"></div><div class="cl-text">Не згадую розмір своєї команди точно</div></div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check done"></div><div class="cl-text done">Не згадую унікальні проекти з назвами</div></div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check done"></div><div class="cl-text done">Уникаю деталей які знає лише одна людина</div></div>
-        </div>
-        <div class="cl-section">
-          <div class="cl-section-title">Фінансова інформація</div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check"></div><div class="cl-text">Округлив зарплату або дав діапазон</div></div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check done"></div><div class="cl-text done">Не згадую бонуси або специфічні умови</div></div>
-        </div>
-        <div class="cl-section">
-          <div class="cl-section-title">Стиль та мова</div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check done"></div><div class="cl-text done">Уникаю специфічних сленгових виразів команди</div></div>
-          <div class="cl-item" onclick="toggleCheck(this)"><div class="cl-check"></div><div class="cl-text">Перевірив що стиль письма не занадто впізнаваний</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TIPS TAB -->
-    <div class="panel-body" id="tab-tips" style="display:none">
-      <div class="tip-card">
-        <div class="tip-icon">🎭</div>
-        <div class="tip-title">Зміни гендер або роль</div>
-        <div class="tip-text">Якщо ти єдина жінка в команді або унікальна роль — читач легко здогадається хто це. Можна написати "людина на позиції X" замість конкретної ролі.</div>
-      </div>
-      <div class="tip-card">
-        <div class="tip-icon">📅</div>
-        <div class="tip-title">Розмивай часові рамки</div>
-        <div class="tip-text">Замість "з березня 2022 по лютий 2024" пиши "близько двох років" або "в 2022–2023". Точні дати звужують коло підозрюваних.</div>
-      </div>
-      <div class="tip-card">
-        <div class="tip-icon">💰</div>
-        <div class="tip-title">Округлюй або давай діапазон</div>
-        <div class="tip-text">Точна зарплата "$3,847" — рідкісна деталь. Краще "$3,800–4,000" або "близько $4k". HR знає точні цифри і може здогадатись хто ти.</div>
-      </div>
-      <div class="tip-card">
-        <div class="tip-icon">👥</div>
-        <div class="tip-title">Не вказуй розмір команди точно</div>
-        <div class="tip-text">"Четверо бекендерів" — в маленькій компанії це одразу ідентифікує команду. Краще "невелика команда" або "до 10 людей".</div>
-      </div>
-      <div class="tip-card">
-        <div class="tip-icon">🔍</div>
-        <div class="tip-title">Уяви що HR читає це</div>
-        <div class="tip-text">Перед публікацією запитай себе: якби HR твоєї компанії прочитав це — скільки людей могли б написати саме це? Якщо менше 5 — треба більше розмити.</div>
+      <div class="jsidebar">
+        <div class="sbl"><div class="sblt">Популярні технології</div><div class="sbi">Python<span class="sbic">48</span></div><div class="sbi">React<span class="sbic">41</span></div><div class="sbi">Go<span class="sbic">32</span></div><div class="sbi">SQL<span class="sbic">29</span></div><div class="sbi">Java<span class="sbic">27</span></div><div class="sbi">TypeScript<span class="sbic">24</span></div></div>
+        <div class="sbl"><div class="sblt">Топ роботодавці</div><div class="sbi" onclick="go('company')">Ajax Systems<span class="sbic">12</span></div><div class="sbi">Monobank Tech<span class="sbic">8</span></div><div class="sbi">GlobalLogic<span class="sbic">34</span></div><div class="sbi">EPAM<span class="sbic">28</span></div><div class="sbi">Senstone<span class="sbic">5</span></div></div>
+        <div class="sbl" style="background:rgba(232,255,71,0.04);border-color:rgba(232,255,71,0.15)"><div class="sblt" style="color:var(--accent)">Розмісти вакансію</div><p style="color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:14px">Кандидати які читають відгуки про твою компанію побачать і вакансію.</p><button class="btn-p" style="width:100%;justify-content:center;font-size:13px">Розмістити · $50</button></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- FORMAT BAR -->
-<div class="format-bar">
-  <button class="fmt-btn" style="font-weight:900">B</button>
-  <button class="fmt-btn" style="font-style:italic">I</button>
-  <button class="fmt-btn" style="text-decoration:underline">U</button>
-  <div class="fmt-sep"></div>
-  <button class="fmt-btn" style="font-size:11px;font-weight:700">H1</button>
-  <button class="fmt-btn" style="font-size:11px;font-weight:700">H2</button>
-  <button class="fmt-btn" style="font-size:11px;font-weight:700">H3</button>
-  <div class="fmt-sep"></div>
-  <button class="fmt-btn">≡</button>
-  <button class="fmt-btn">№</button>
-  <button class="fmt-btn">"</button>
-  <div class="fmt-sep"></div>
-  <button class="fmt-btn">🔗</button>
-  <button class="fmt-btn">—</button>
+<!-- COMPANY -->
+<div id="page-company" class="page">
+  <div class="cphero">
+    <div style="margin-bottom:14px"><span style="color:var(--muted);font-size:13px;cursor:pointer" onclick="go('home')">← Всі компанії</span></div>
+    <div class="cphtop">
+      <div class="cplb" style="background:#1a2a1a;color:var(--green)">AJ</div>
+      <div class="cphi">
+        <div class="cphn">Ajax Systems</div>
+        <div class="cphm">Продуктова компанія · Київ, Україна · 500–1000 співробітників · Засновано 2011</div>
+        <div class="cphtags"><span class="tag">Hardware</span><span class="tag">IoT</span><span class="tag">Security</span><span class="tag">B2B</span><span class="tag">Продуктова</span></div>
+        <div class="cpact"><button class="btn-p" onclick="go('reviews')">+ Написати відгук</button><button class="btn-g" onclick="go('jobs')">12 вакансій →</button></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:'Unbounded',sans-serif;font-size:52px;font-weight:900;color:var(--green);letter-spacing:-3px;line-height:1">4.7</div>
+        <div style="color:var(--accent);font-size:14px;margin:4px 0">★★★★★</div>
+        <div style="color:var(--muted);font-size:12px">143 відгуки</div>
+      </div>
+    </div>
+    <div class="cscg">
+      <div class="cscc"><div class="cscn" style="color:var(--green)">4.8</div><div class="cscl">Менеджмент</div></div>
+      <div class="cscc"><div class="cscn" style="color:var(--accent)">3.6</div><div class="cscl">Зарплата</div></div>
+      <div class="cscc"><div class="cscn" style="color:var(--green)">4.5</div><div class="cscl">Баланс</div></div>
+      <div class="cscc"><div class="cscn" style="color:var(--green)">4.9</div><div class="cscl">Розвиток</div><div class="recbar"><div class="rbt"><div class="rbf" style="width:89%;background:var(--green)"></div></div><span style="font-size:11px;color:var(--green);font-weight:700">89%</span></div><div style="color:var(--muted);font-size:11px">рекомендують</div></div>
+    </div>
+  </div>
+  <div class="cptabs">
+    <div class="tab active">Відгуки (143)</div><div class="tab">Зарплати</div><div class="tab" onclick="go('jobs')">Вакансії (12)</div><div class="tab">Про компанію</div>
+  </div>
+  <div class="cpcont">
+    <div class="cplay">
+      <div class="cpmain">
+        <div class="rvc">
+          <div class="rvh"><div><div class="rvcn">Senior Backend Developer</div><div class="rvr">Київ · 2 роки</div></div><div class="rvrate" style="color:var(--green)">4.5</div></div>
+          <div class="sbars"><div class="srow"><span>Менеджмент</span><div class="bt"><div class="bf" style="width:90%"></div></div><span class="sv">4.5</span></div><div class="srow"><span>Зарплата</span><div class="bt"><div class="bf" style="width:70%;background:var(--accent)"></div></div><span class="sv">3.5</span></div><div class="srow"><span>Баланс</span><div class="bt"><div class="bf" style="width:80%"></div></div><span class="sv">4.0</span></div><div class="srow"><span>Розвиток</span><div class="bt"><div class="bf" style="width:96%"></div></div><span class="sv">4.8</span></div></div>
+          <div class="pc"><div class="pros"><div class="pl">✓ Плюси</div><p>Реальний продукт який рятує людей. Немає мікроменеджменту, довіра до розробників. Цікаві технічні задачі.</p></div><div class="cons"><div class="cl">✗ Мінуси</div><p>Легасі код. Зарплата трохи нижче ринку. Темп роботи іноді дуже високий.</p></div></div>
+          <div class="rvf"><div class="rvm"><span class="lib">in Верифіковано</span><span>3 дні тому</span><span class="bg">Рекомендує</span></div><div class="hlp">👍 Корисно (24)</div></div>
+        </div>
+        <div class="rvc">
+          <div class="rvh"><div><div class="rvcn">Hardware Engineer</div><div class="rvr">Київ · 3.5 роки</div></div><div class="rvrate" style="color:var(--green)">5.0</div></div>
+          <div class="pc"><div class="pros"><div class="pl">✓ Плюси</div><p>Одна з небагатьох компаній в Україні де є реальна hardware розробка світового рівня. Постійно вчишся.</p></div><div class="cons"><div class="cl">✗ Мінуси</div><p>Іноді жорсткі дедлайни. Офіс тільки в Києві, remote немає.</p></div></div>
+          <div class="rvf"><div class="rvm"><span class="lib">in Верифіковано</span><span>2 тижні тому</span><span class="bg">Рекомендує</span></div><div class="hlp">👍 Корисно (56)</div></div>
+        </div>
+        <div class="rvc">
+          <div class="rvh"><div><div class="rvcn">Product Manager</div><div class="rvr">Київ · 1 рік</div></div><div class="rvrate" style="color:var(--accent)">3.5</div></div>
+          <div class="pc"><div class="pros"><div class="pl">✓ Плюси</div><p>Крутий продукт, є чим пишатись. Швидке прийняття рішень, мінімум бюрократії.</p></div><div class="cons"><div class="cl">✗ Мінуси</div><p>Процеси для PM ще не зрілі. Роль не чітко визначена між PM і тех. лідом.</p></div></div>
+          <div class="rvf"><div class="rvm"><span class="lib">in Верифіковано</span><span>1 місяць тому</span><span class="by">Нейтрально</span></div><div class="hlp">👍 Корисно (18)</div></div>
+        </div>
+      </div>
+      <div class="cpsb">
+        <div class="ib"><div class="ibt">Про компанію</div><div class="ibr"><span class="ibk">Тип</span><span class="ibv">Продуктова</span></div><div class="ibr"><span class="ibk">Індустрія</span><span class="ibv">Security / IoT</span></div><div class="ibr"><span class="ibk">Розмір</span><span class="ibv">500–1000</span></div><div class="ibr"><span class="ibk">Засновано</span><span class="ibv">2011</span></div><div class="ibr"><span class="ibk">Локація</span><span class="ibv">Київ</span></div><div class="ibr"><span class="ibk">Ринки</span><span class="ibv">130+ країн</span></div><div class="ibr"><span class="ibk">Сайт</span><span class="ibv" style="color:var(--accent)">ajax.systems</span></div></div>
+        <div class="ib"><div class="ibt">Середні зарплати</div><div class="ibr"><span class="ibk">Backend Dev</span><span class="ibv" style="color:var(--accent)">$3,800</span></div><div class="ibr"><span class="ibk">Frontend Dev</span><span class="ibv" style="color:var(--accent)">$3,200</span></div><div class="ibr"><span class="ibk">Hardware Eng</span><span class="ibv" style="color:var(--accent)">$4,100</span></div><div class="ibr"><span class="ibk">Product Manager</span><span class="ibv" style="color:var(--accent)">$4,500</span></div><span style="color:var(--muted);font-size:12px;cursor:pointer;display:block;margin-top:12px" onclick="go('salaries')">Всі зарплати →</span></div>
+        <div class="ib" style="background:rgba(71,255,138,0.03);border-color:rgba(71,255,138,0.15)"><div class="ibt" style="color:var(--green)">12 відкритих вакансій</div><div class="ibr"><span class="ibk">Senior Go Dev</span><span class="ibv" style="color:var(--accent);font-size:12px">$4–6k</span></div><div class="ibr"><span class="ibk">Product Manager</span><span class="ibv" style="color:var(--accent);font-size:12px">$4.5–7k</span></div><div class="ibr"><span class="ibk">Hardware Eng</span><span class="ibv" style="color:var(--accent);font-size:12px">$3.5–5k</span></div><button class="btn-g" style="width:100%;margin-top:12px;text-align:center" onclick="go('jobs')">Всі вакансії →</button></div>
+      </div>
+    </div>
+  </div>
 </div>
+
+
+  <div class="fl" onclick="go('home')">Chesno<span>IT</span></div>
+  <div class="fls"><a href="#">Про проект</a><a href="#">Правила</a><a href="#">Для компаній</a><a href="#">Telegram</a></div>
+  <div>© 2025 · Зроблено з 💛</div>
+</footer>
+
+<!-- ARTICLES PAGE -->
+<div id="page-articles" class="page">
+  <div class="ph"><h1>Статті</h1><p>Чесні розповіді від людей які там були. Довго, детально, анонімно.</p></div>
+  <div class="wrap" style="padding-bottom:80px">
+    <div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap;align-items:center">
+      <div class="sbar" style="flex:1;min-width:260px"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="Пошук статей..."></div>
+      <select class="sel"><option>Всі компанії</option><option>Ajax Systems</option><option>EPAM</option><option>Monobank Tech</option></select>
+      <select class="sel"><option>Нові</option><option>Популярні</option><option>Обговорювані</option></select>
+      <button class="btn-p" onclick="go('editor')" style="flex-shrink:0">✍️ Написати статтю</button>
+    </div>
+
+    <!-- Featured article -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;margin-bottom:24px;cursor:pointer;transition:border-color 0.2s;position:relative;overflow:hidden" onclick="go('editor')" onmouseover="this.style.borderColor='#333'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent)"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
+        <div style="width:30px;height:30px;background:#1a2a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Unbounded',sans-serif;font-weight:900;font-size:11px;color:var(--green)">AJ</div>
+        <span style="font-size:13px;color:var(--muted)">Ajax Systems</span>
+        <span style="background:rgba(232,255,71,0.1);color:var(--accent);border:1px solid rgba(232,255,71,0.2);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">Редактор вибір</span>
+      </div>
+      <div style="font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;letter-spacing:-0.8px;line-height:1.2;margin-bottom:12px">Два роки в Ajax: що не розкажуть на співбесіді</div>
+      <p style="color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:20px;max-width:680px">Прийшов з великого аутсорсу і не очікував такого. Про реальний темп роботи, якість коду, менеджмент і чому врешті пішов — чесно і без прикрас.</p>
+      <div style="display:flex;align-items:center;gap:16px;font-size:12px;color:var(--muted)">
+        <span class="art-anon">🛡️ Верифіковано · анонімно</span>
+        <span>👁 2,847 переглядів</span>
+        <span>💬 43 коментарі</span>
+        <span>3 дні тому</span>
+      </div>
+    </div>
+
+    <div class="art-grid">
+      <div class="art-card" onclick="go('editor')">
+        <div class="art-card-top">
+          <div class="art-co-row"><div class="art-co-logo" style="background:#2a1a1a;color:var(--accent2)">EP</div><span class="art-co-name">EPAM Systems</span></div>
+          <div class="art-title">Чому я пішов з EPAM після 4 років і про що не пошкодував</div>
+          <p class="art-excerpt">Корпоративна машина з хорошими процесами але без душі. Детальний розбір плюсів і мінусів від людини яка бачила компанію зсередини.</p>
+        </div>
+        <div class="art-card-bot">
+          <div class="art-meta"><span class="art-anon">🛡️ Анонімно</span><span>1,234 переглядів</span></div>
+          <span style="color:var(--muted);font-size:12px">1 тиждень тому</span>
+        </div>
+      </div>
+
+      <div class="art-card" onclick="go('editor')">
+        <div class="art-card-top">
+          <div class="art-co-row"><div class="art-co-logo" style="background:#1a1a1a;color:#ff9947">MO</div><span class="art-co-name">Monobank Tech</span></div>
+          <div class="art-title">Data в Monobank: рай для аналітика чи пекло без документації?</div>
+          <p class="art-excerpt">Моноб — це як стартап в масштабі великої компанії. Швидко, хаотично, цікаво. Але є нюанси які варто знати перед офером.</p>
+        </div>
+        <div class="art-card-bot">
+          <div class="art-meta"><span class="art-anon">🛡️ Анонімно</span><span>876 переглядів</span></div>
+          <span style="color:var(--muted);font-size:12px">2 тижні тому</span>
+        </div>
+      </div>
+
+      <div class="art-card" onclick="go('editor')">
+        <div class="art-card-top">
+          <div class="art-co-row"><div class="art-co-logo" style="background:#1a1a2a;color:#7b68ee">GL</div><span class="art-co-name">GlobalLogic</span></div>
+          <div class="art-title">Аутсорс vs продукт: мій досвід переходу з GL в стартап</div>
+          <p class="art-excerpt">Три роки в GlobalLogic і рік в стартапі. Порівнюю все: зарплату, темп, нудьгу, стрес і особистий розвиток.</p>
+        </div>
+        <div class="art-card-bot">
+          <div class="art-meta"><span class="art-anon">🛡️ Анонімно</span><span>654 переглядів</span></div>
+          <span style="color:var(--muted);font-size:12px">3 тижні тому</span>
+        </div>
+      </div>
+
+      <div class="art-card" onclick="go('editor')">
+        <div class="art-card-top">
+          <div class="art-co-row"><div class="art-co-logo" style="background:#2a2a1a;color:var(--accent)">GF</div><span class="art-co-name">GameForge UA</span></div>
+          <div class="art-title">Як я провів найгірший рік своєї кар'єри і що з цього виніс</div>
+          <p class="art-excerpt">GameForge виглядав мрією — ігрова індустрія, молода команда. Реальність виявилась іншою. Детально і без образ.</p>
+        </div>
+        <div class="art-card-bot">
+          <div class="art-meta"><span class="art-anon">🛡️ Анонімно</span><span>3,102 переглядів</span></div>
+          <span style="color:var(--muted);font-size:12px">1 місяць тому</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:40px" class="ctab">
+      <div><h2>Поділись своєю історією</h2><p>Твій досвід може допомогти сотням людей прийняти правильне рішення. ШІ допоможе зробити текст анонімним.</p></div>
+      <div class="cta-r"><button class="btn-p" onclick="go('editor')">✍️ Написати статтю</button><div class="an">🛡️ ШІ-анонімізація · LinkedIn верифікація</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDITOR PAGE -->
+<div id="page-editor" class="page">
+  <div class="ed-topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="color:var(--muted);font-size:13px;cursor:pointer" onclick="go('articles')">← Статті</span>
+      <span class="draft-badge">Чернетка</span>
+      <span style="color:var(--muted);font-size:12px;display:flex;align-items:center;gap:5px"><span style="width:5px;height:5px;background:var(--green);border-radius:50%;display:inline-block"></span>Збережено</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="anon-badge"><span>🛡️</span><span style="color:var(--muted);font-size:12px">Анонімність:</span><span class="ascore" id="anonScore" style="color:#ff9947">Середня</span></div>
+      <button class="btn-g">Попередній перегляд</button>
+      <button class="btn-p" style="padding:8px 18px;font-size:13px">Опублікувати</button>
+    </div>
+  </div>
+  <div class="ed-prog"><div class="ed-prog-fill" id="edProg" style="width:35%"></div></div>
+
+  <div class="editor-layout">
+    <div class="ed-toolbar">
+      <button class="tool-btn active">T</button>
+      <button class="tool-btn"><b>B</b></button>
+      <button class="tool-btn"><i>I</i></button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" style="font-size:11px">H2</button>
+      <button class="tool-btn">"</button>
+      <button class="tool-btn">≡</button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn">🖼</button>
+      <button class="tool-btn">🔗</button>
+    </div>
+
+    <div class="ed-wrap">
+      <div class="ed-inner">
+        <div class="co-sel">
+          <div class="co-sel-logo">AJ</div>
+          <div class="co-sel-info"><div class="co-sel-name">Ajax Systems</div><div class="co-sel-meta">Продуктова · Київ · Hardware / IoT</div></div>
+          <span style="color:var(--muted);font-size:12px">Змінити ↓</span>
+        </div>
+        <textarea class="ed-title" rows="2" placeholder="Заголовок статті...">Два роки в Ajax: що не розкажуть на співбесіді</textarea>
+        <textarea class="ed-sub" rows="2" placeholder="Короткий вступ...">Чесний досвід від людини яка прийшла з великого аутсорсу і не очікувала такого.</textarea>
+        <hr style="border:none;border-top:1px solid var(--border);margin-bottom:24px">
+        <div class="ed-body" id="edBody">
+          <p>Я пропрацював у відділі backend-розробки майже два роки, з <span class="rh" data-i="0">березня 2022 по лютий 2024</span>. Прийшов з GlobalLogic, де до цього провів три роки.</p><br>
+          <p>Команда на момент мого приходу була маленькою — <span class="rh" data-i="1">нас було четверо бекендерів</span>, плюс двоє фронтів і один DevOps. Мій безпосередній керівник — <span class="rh" data-i="2">Андрій Коваленко</span> — технічно дуже сильний, але часом складний у комунікації.</p><br>
+          <p>Перше що вразило — темп. <span class="rm" data-i="3">Ми запускали новий модуль охоронної сигналізації</span>, і дедлайни були жорсткі. Без овертайму не обходилось, але принаймні їх не вимагали.</p><br>
+          <p>Зарплата: на старті мені запропонували <span class="rm" data-i="4">$3,800/міс</span>, що на той момент було трохи нижче ринку. Через рік підняли до <span class="rm" data-i="5">$4,300</span> без особливих переговорів.</p><br>
+          <p>Головний плюс — продукт має сенс. Коли розробляєш систему яка реально захищає людей, це відчувається інакше ніж CRM для якогось банку.</p><br>
+          <p>Мінуси: легасі в деяких модулях страшне. Документації майже нема. <span class="rl" data-i="6">Онбординг зайняв у мене три місяці</span> щоб більш-менш орієнтуватись.</p><br>
+          <p>Звільнився бо знайшов можливість з релокацією. Не тому що погано — просто час рухатись далі.</p>
+        </div>
+      </div>
+      <div class="fmt-bar">
+        <button class="fmt-btn2" style="font-weight:900">B</button>
+        <button class="fmt-btn2" style="font-style:italic">I</button>
+        <button class="fmt-btn2" style="text-decoration:underline">U</button>
+        <div class="fmt-sep2"></div>
+        <button class="fmt-btn2" style="font-size:10px;font-weight:700">H1</button>
+        <button class="fmt-btn2" style="font-size:10px;font-weight:700">H2</button>
+        <div class="fmt-sep2"></div>
+        <button class="fmt-btn2">≡</button>
+        <button class="fmt-btn2">"</button>
+        <button class="fmt-btn2">🔗</button>
+        <button class="fmt-btn2">—</button>
+      </div>
+    </div>
+
+    <div class="ed-right">
+      <div class="ptabs">
+        <div class="ptab active" onclick="switchPtab('anon',this)">🛡️ Анонімність</div>
+        <div class="ptab" onclick="switchPtab('chk',this)">✓ Чекліст</div>
+        <div class="ptab" onclick="switchPtab('tips',this)">💡 Поради</div>
+      </div>
+      <div class="pbody" id="ptab-anon">
+        <div style="margin-bottom:16px"><div style="font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;margin-bottom:5px;letter-spacing:-0.3px">ШІ-аналіз анонімності</div><div style="color:var(--muted);font-size:12px;line-height:1.5">Знаходимо деталі які можуть тебе деанонімізувати і пропонуємо як переформулювати.</div></div>
+        <div class="anon-score-box">
+          <div class="asb-top"><span class="asb-label">Ризик деанонімізації</span><span class="asb-val" id="riskVal" style="color:#ff9947">Середній</span></div>
+          <div class="asb-bar"><div class="asb-fill" id="riskFill" style="width:58%;background:#ff9947"></div></div>
+          <div class="asb-hint" id="riskHint">Знайдено 7 проблем · 3 критичних</div>
+        </div>
+        <div class="iss-list" id="issList"></div>
+        <button class="scan-btn2" onclick="rescan2()"><span>🔍</span> Повторний аналіз</button>
+      </div>
+      <div class="pbody" id="ptab-chk" style="display:none">
+        <div class="cl-sec-t">Особиста інформація</div>
+        <div class="cl-item2" onclick="tglChk(this)"><div class="cl-chk done"></div><div class="cl-txt2 done">Не згадую своє ім'я або ініціали</div></div>
+        <div class="cl-item2" onclick="tglChk(this)"><div class="cl-chk done"></div><div class="cl-txt2 done">Не згадую місто проживання</div></div>
+        <div class="cl-item2" onclick="tglChk(this)"><div class="cl-chk"></div><div class="cl-txt2">Не вказую конкретні дати роботи</div></div>
+        <div class="cl-item2" onclick="tglChk(this)"><div class="cl-chk"></div><div class="cl-txt2">Не вказую попередні місця роботи</div></div>
+        <div class="cl-sec-t">Ідентифікація в компанії</div>
+        <div class="cl-item2" onclick="tglChk(this)"><div class="cl-chk"></div><div class="cl-txt2">Не вказую імена колег або менеджерів</div></div>
+        <div class="cl-item2" onclick="tglChk(this)"><div class="cl-chk"></div><div class="cl-txt2">Не згадую точний розмір команди</div></div>
+        <div class="cl-item2" onclick="tglChk(this)"><div class="cl-chk done"></div><div class="cl-txt2 done">Уникаю деталей відомих лише одній людині</div></div>
+        <div class="cl-sec-t">Фінансова інформація</div>
+        <div class="cl-item2" onclick="tglChk(this)"><div class="cl-chk"></div><div class="cl-txt2">Округлив зарплату або дав діапазон</div></div>
+        <div class="cl-item2" onclick="tglChk(this)"><div class="cl-chk done"></div><div class="cl-txt2 done">Не згадую специфічні бонуси або умови</div></div>
+      </div>
+      <div class="pbody" id="ptab-tips" style="display:none">
+        <div class="tip2"><div class="tip2-icon">📅</div><div class="tip2-t">Розмивай часові рамки</div><div class="tip2-txt">Замість "з березня 2022" пиши "близько двох років" або "в 2022–2023". Точні дати звужують коло підозрюваних.</div></div>
+        <div class="tip2"><div class="tip2-icon">👥</div><div class="tip2-t">Не вказуй розмір команди точно</div><div class="tip2-txt">"Четверо бекендерів" в маленькій компанії одразу ідентифікує команду. Краще "невелика команда".</div></div>
+        <div class="tip2"><div class="tip2-icon">💰</div><div class="tip2-t">Округлюй зарплату</div><div class="tip2-txt">Точна сума "$3,847" рідкісна деталь. Краще "$3,800–4,000" або "близько $4k".</div></div>
+        <div class="tip2"><div class="tip2-icon">🎭</div><div class="tip2-t">Уяви що HR читає це</div><div class="tip2-txt">Скільки людей могли б написати саме це? Якщо менше 5 — треба більше розмити деталі.</div></div>
+        <div class="tip2"><div class="tip2-icon">🔤</div><div class="tip2-t">Слідкуй за стилем письма</div><div class="tip2-txt">Специфічні вирази або жарти команди можуть видати тебе навіть без прямих деталей.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="fl" onclick="go('home')">Chesno<span>IT</span></div>
+  <div class="fls"><a href="#">Про проект</a><a href="#">Правила</a><a href="#">Для компаній</a><a href="#">Telegram</a></div>
+  <div>© 2025 · Зроблено з 💛</div>
+</footer>
 
 <script>
-const issues = [
-  {
-    id: 0,
-    level: 'high',
-    label: 'Критично',
-    text: 'Точні дати роботи звужують коло до кількох людей які працювали в цей конкретний період.',
-    original: '"березня 2022 по лютий 2024"',
-    suggestion: 'близько двох років, в 2022–2024',
-    applied: false,
-    ignored: false
-  },
-  {
-    id: 1,
-    level: 'high',
-    label: 'Критично',
-    text: 'Точний розмір команди — рідкісна деталь. В маленькій компанії HR знає скільки людей в кожній команді.',
-    original: '"нас було четверо бекендерів"',
-    suggestion: 'невелика команда бекендерів',
-    applied: false,
-    ignored: false
-  },
-  {
-    id: 2,
-    level: 'high',
-    label: 'Критично',
-    text: 'Повне ім\'я менеджера — пряма ідентифікація. Навіть якщо ти анонімний, людина яку ти описуєш — ні.',
-    original: '"Андрій Коваленко"',
-    suggestion: 'мій тімлід / безпосередній керівник',
-    applied: false,
-    ignored: false
-  },
-  {
-    id: 3,
-    level: 'med',
-    label: 'Середній',
-    text: 'Назва конкретного продукту з датою запуску може ідентифікувати хто над ним працював.',
-    original: '"новий модуль охоронної сигналізації"',
-    suggestion: 'новий продуктовий модуль',
-    applied: false,
-    ignored: false
-  },
-  {
-    id: 4,
-    level: 'med',
-    label: 'Середній',
-    text: 'Точна стартова зарплата — HR знає точні цифри і може звузити коло кандидатів за цим параметром.',
-    original: '"$3,800/міс"',
-    suggestion: 'близько $3,700–4,000',
-    applied: false,
-    ignored: false
-  },
-  {
-    id: 5,
-    level: 'med',
-    label: 'Середній',
-    text: 'Точна сума підвищення в комбінації з іншими деталями ідентифікує тебе.',
-    original: '"$4,300"',
-    suggestion: 'помітно підвищили, понад $4k',
-    applied: false,
-    ignored: false
-  },
-  {
-    id: 6,
-    level: 'low',
-    label: 'Низький',
-    text: 'Деталь про онбординг незначна сама по собі, але в комбінації з іншим — додає унікальності.',
-    original: '"три місяці"',
-    suggestion: 'кілька місяців',
-    applied: false,
-    ignored: false
-  }
-];
+  const edIssues = [
+    { id:0, lv:'h', badge:'Критично', txt:'Точні дати звужують коло до людей які працювали саме в цей період.', orig:'"березня 2022 по лютий 2024"', sug:'близько двох років, в 2022–2024', done:false },
+    { id:1, lv:'h', badge:'Критично', txt:'Точний розмір команди — HR знає скільки людей в кожній команді.', orig:'"нас було четверо бекендерів"', sug:'невелика команда бекендерів', done:false },
+    { id:2, lv:'h', badge:'Критично', txt:'Повне ім\'я менеджера — пряма ідентифікація людини.', orig:'"Андрій Коваленко"', sug:'мій тімлід / безпосередній керівник', done:false },
+    { id:3, lv:'m', badge:'Середній', txt:'Назва продукту з датою запуску може ідентифікувати команду.', orig:'"новий модуль охоронної сигналізації"', sug:'новий продуктовий модуль', done:false },
+    { id:4, lv:'m', badge:'Середній', txt:'Точна стартова зарплата — HR знає цифри і може звузити коло.', orig:'"$3,800/міс"', sug:'близько $3,700–4,000', done:false },
+    { id:5, lv:'m', badge:'Середній', txt:'Точна сума підвищення в комбінації з іншим ідентифікує тебе.', orig:'"$4,300"', sug:'понад $4k', done:false },
+    { id:6, lv:'l', badge:'Низький', txt:'Деталь про онбординг незначна сама, але в комбінації — унікалізує.', orig:'"три місяці"', sug:'кілька місяців', done:false },
+  ];
 
-function renderIssues() {
-  const list = document.getElementById('issuesList');
-  const active = issues.filter(i => !i.applied && !i.ignored);
-  
-  if (active.length === 0) {
-    list.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted)"><div style="font-size:32px;margin-bottom:12px">🛡️</div><div style="font-family:\'Unbounded\',sans-serif;font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px">Відмінно!</div><div style="font-size:12px;line-height:1.6">Всі ризики усунено. Твоя стаття максимально анонімна.</div></div>';
-    updateRiskScore(0);
-    return;
-  }
-
-  list.innerHTML = active.map(issue => `
-    <div class="issue-card" id="issue-${issue.id}" onclick="selectIssue(${issue.id})">
-      <div class="ic-top">
-        <div class="ic-text" style="flex:1">${issue.text}</div>
-        <div class="ic-badge ${issue.level}">${issue.label}</div>
+  function renderIss() {
+    const list = document.getElementById('issList');
+    const active = edIssues.filter(i => !i.done);
+    if (!active.length) {
+      list.innerHTML = '<div style="text-align:center;padding:28px 0;color:var(--muted)"><div style="font-size:28px;margin-bottom:10px">🛡️</div><div style="font-family:\'Unbounded\',sans-serif;font-size:12px;font-weight:700;color:var(--green);margin-bottom:5px">Чудово!</div><div style="font-size:12px;line-height:1.6">Всі ризики усунено.</div></div>';
+      updateRisk(0, 0, 0); return;
+    }
+    list.innerHTML = active.map(i => `<div class="iss" id="ei-${i.id}" onclick="selIss(${i.id})">
+      <div class="iss-top"><div class="iss-txt">${i.txt}</div><div class="iss-badge ${i.lv}">${i.badge}</div></div>
+      <div class="iss-orig">«${i.orig}»</div>
+      <div class="iss-sug-lbl">✓ Пропозиція</div>
+      <div class="iss-sug">${i.sug}</div>
+      <div class="iss-acts">
+        <button class="iss-btn ap" onclick="applyIss(event,${i.id})">Застосувати</button>
+        <button class="iss-btn ig" onclick="ignIss(event,${i.id})">Ігнорувати</button>
       </div>
-      <div class="ic-original">«${issue.original}»</div>
-      <div class="ic-suggestion">
-        <div class="ic-sug-label">✓ Пропозиція</div>
-        <div class="ic-sug-text">${issue.suggestion}</div>
-      </div>
-      <div class="ic-actions">
-        <button class="ic-btn apply" onclick="applyFix(event, ${issue.id})">Застосувати</button>
-        <button class="ic-btn ignore" onclick="ignoreIssue(event, ${issue.id})">Ігнорувати</button>
-      </div>
-    </div>
-  `).join('');
-
-  const high = active.filter(i => i.level === 'high').length;
-  const med = active.filter(i => i.level === 'med').length;
-  const score = Math.min(100, high * 20 + med * 10 + active.filter(i=>i.level==='low').length * 4);
-  updateRiskScore(score, high, active.length);
-}
-
-function updateRiskScore(score, highCount = 0, total = 0) {
-  const fill = document.getElementById('riskFill');
-  const val = document.getElementById('riskVal');
-  const hint = document.getElementById('riskHint');
-  const badge = document.getElementById('anonScore');
-  const progress = document.getElementById('progressFill');
-
-  fill.style.width = score + '%';
-
-  if (score === 0) {
-    fill.style.background = 'var(--green)';
-    val.style.color = 'var(--green)';
-    val.textContent = 'Низький';
-    badge.style.color = 'var(--green)';
-    badge.textContent = 'Висока';
-    hint.textContent = 'Чудово! Жодних ризиків не знайдено.';
-    progress.style.width = '100%';
-  } else if (score < 40) {
-    fill.style.background = 'var(--accent)';
-    val.style.color = 'var(--accent)';
-    val.textContent = 'Низький';
-    badge.style.color = 'var(--accent)';
-    badge.textContent = 'Добра';
-    hint.textContent = `Знайдено ${total} проблем · ${highCount} критичних`;
-    progress.style.width = '75%';
-  } else if (score < 70) {
-    fill.style.background = 'var(--orange)';
-    val.style.color = 'var(--orange)';
-    val.textContent = 'Середній';
-    badge.style.color = 'var(--orange)';
-    badge.textContent = 'Середня';
-    hint.textContent = `Знайдено ${total} проблем · ${highCount} критичних`;
-    progress.style.width = '35%';
-  } else {
-    fill.style.background = 'var(--accent2)';
-    val.style.color = 'var(--accent2)';
-    val.textContent = 'Високий';
-    badge.style.color = 'var(--accent2)';
-    badge.textContent = 'Низька';
-    hint.textContent = `Знайдено ${total} проблем · ${highCount} критичних`;
-    progress.style.width = '10%';
+    </div>`).join('');
+    const h = active.filter(i=>i.lv==='h').length;
+    const score = Math.min(100, h*20 + active.filter(i=>i.lv==='m').length*10 + active.filter(i=>i.lv==='l').length*4);
+    updateRisk(score, h, active.length);
   }
-}
 
-function selectIssue(id) {
-  document.querySelectorAll('.issue-card').forEach(c => c.classList.remove('selected'));
-  const card = document.getElementById('issue-' + id);
-  if (card) card.classList.add('selected');
-}
-
-function applyFix(e, id) {
-  e.stopPropagation();
-  issues[id].applied = true;
-  const card = document.getElementById('issue-' + id);
-  if (card) {
-    card.style.opacity = '0';
-    card.style.transform = 'translateX(20px)';
-    card.style.transition = 'all 0.3s ease';
-    setTimeout(() => renderIssues(), 300);
+  function updateRisk(score, h, total) {
+    const fill = document.getElementById('riskFill');
+    const val = document.getElementById('riskVal');
+    const hint = document.getElementById('riskHint');
+    const ascore = document.getElementById('anonScore');
+    const prog = document.getElementById('edProg');
+    fill.style.width = score + '%';
+    if (score === 0) {
+      fill.style.background = 'var(--green)'; val.style.color = 'var(--green)'; val.textContent = 'Низький';
+      ascore.style.color = 'var(--green)'; ascore.textContent = 'Висока';
+      hint.textContent = 'Жодних ризиків не знайдено!'; prog.style.width = '100%';
+    } else if (score < 40) {
+      fill.style.background = 'var(--accent)'; val.style.color = 'var(--accent)'; val.textContent = 'Низький';
+      ascore.style.color = 'var(--accent)'; ascore.textContent = 'Добра';
+      hint.textContent = `Знайдено ${total} проблем · ${h} критичних`; prog.style.width = '75%';
+    } else if (score < 70) {
+      fill.style.background = '#ff9947'; val.style.color = '#ff9947'; val.textContent = 'Середній';
+      ascore.style.color = '#ff9947'; ascore.textContent = 'Середня';
+      hint.textContent = `Знайдено ${total} проблем · ${h} критичних`; prog.style.width = '35%';
+    } else {
+      fill.style.background = 'var(--accent2)'; val.style.color = 'var(--accent2)'; val.textContent = 'Високий';
+      ascore.style.color = 'var(--accent2)'; ascore.textContent = 'Низька';
+      hint.textContent = `Знайдено ${total} проблем · ${h} критичних`; prog.style.width = '10%';
+    }
   }
-  // Update highlight in text
-  const spans = document.querySelectorAll(`[data-issue="${id}"]`);
-  spans.forEach(s => {
-    s.style.background = 'rgba(71,255,138,0.1)';
-    s.style.borderBottomColor = 'var(--green)';
-    s.textContent = issues[id].suggestion;
+
+  function selIss(id) { document.querySelectorAll('.iss').forEach(c=>c.classList.remove('sel')); const el=document.getElementById('ei-'+id); if(el) el.classList.add('sel'); }
+  function applyIss(e, id) {
+    e.stopPropagation(); edIssues[id].done = true;
+    const el = document.getElementById('ei-'+id);
+    if (el) { el.style.opacity='0'; el.style.transform='translateX(16px)'; el.style.transition='all 0.25s'; setTimeout(renderIss, 250); }
+    document.querySelectorAll(`[data-i="${id}"]`).forEach(s => { s.style.background='rgba(71,255,138,0.1)'; s.style.borderBottomColor='var(--green)'; s.textContent=edIssues[id].sug; });
+  }
+  function ignIss(e, id) {
+    e.stopPropagation(); edIssues[id].done = true;
+    const el = document.getElementById('ei-'+id);
+    if (el) { el.style.opacity='0'; el.style.transition='opacity 0.2s'; setTimeout(renderIss, 200); }
+    document.querySelectorAll(`[data-i="${id}"]`).forEach(s => { s.style.opacity='0.5'; s.style.borderBottomStyle='dashed'; });
+  }
+  function rescan2() { setTimeout(renderIss, 800); }
+  function switchPtab(id, el) {
+    document.querySelectorAll('.pbody').forEach(p=>p.style.display='none');
+    document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+    document.getElementById('ptab-'+id).style.display='block'; el.classList.add('active');
+  }
+  function tglChk(el) { el.querySelector('.cl-chk').classList.toggle('done'); el.querySelector('.cl-txt2').classList.toggle('done'); }
+
+  function go(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    const m = { home:'n-home', reviews:'n-reviews', articles:'n-articles', salaries:'n-salaries', jobs:'n-jobs', company:'n-home', editor:'n-articles' };
+    if (m[id]) document.getElementById(m[id]).classList.add('active');
+    // hide footer for editor
+    document.querySelector('footer').style.display = id === 'editor' ? 'none' : '';
+    if (id !== 'editor') window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (id === 'editor') renderIss();
+  }
+  document.querySelectorAll('.fc').forEach(c => {
+    c.addEventListener('click', function() {
+      this.closest('.filters').querySelectorAll('.fc').forEach(x => x.classList.remove('active'));
+      this.classList.add('active');
+    });
   });
-}
-
-function ignoreIssue(e, id) {
-  e.stopPropagation();
-  issues[id].ignored = true;
-  const card = document.getElementById('issue-' + id);
-  if (card) {
-    card.style.opacity = '0';
-    card.style.transition = 'opacity 0.2s';
-    setTimeout(() => renderIssues(), 200);
-  }
-  const spans = document.querySelectorAll(`[data-issue="${id}"]`);
-  spans.forEach(s => {
-    s.style.opacity = '0.5';
-    s.style.borderBottomStyle = 'dashed';
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', function() {
+      this.closest('.tabs').querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      this.classList.add('active');
+    });
   });
-}
-
-function rescan() {
-  const btn = document.getElementById('scanBtn');
-  btn.classList.add('scanning');
-  btn.innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">⟳</span> Аналізую...';
-  setTimeout(() => {
-    btn.classList.remove('scanning');
-    btn.innerHTML = '<span>🔍</span> Повторний аналіз';
-  }, 1500);
-}
-
-function switchTab(tab, el) {
-  document.querySelectorAll('.panel-body').forEach(p => p.style.display = 'none');
-  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + tab).style.display = 'block';
-  el.classList.add('active');
-}
-
-function toggleCheck(el) {
-  const check = el.querySelector('.cl-check');
-  const text = el.querySelector('.cl-text');
-  check.classList.toggle('done');
-  text.classList.toggle('done');
-}
-
-// Init
-renderIssues();
+  document.querySelectorAll('.hlp').forEach(b => b.addEventListener('click', function() { this.style.color = 'var(--accent)'; }));
 </script>
 </body>
 </html>
